@@ -1,0 +1,42 @@
+# Standalone Docker Compose for running pipeline with Spark
+# Uses single container with Spark in local mode (no cluster)
+
+services:
+  iptu-spark:
+    build: .
+    container_name: iptu-spark-standalone
+    ports:
+      - "4040:4040"   # Spark UI
+      - "8080:8080"   # Alternative Spark UI
+    environment:
+      - IPTU_DATA_ENGINE=pyspark
+      - IPTU_BASE_DIR=/app
+      - IPTU_DATA_DIR=/app/data
+      - IPTU_OUTPUT_DIR=/app/outputs
+      - IPTU_LOG_DIR=/app/logs
+      - PYSPARK_PYTHON=/app/.venv/bin/python
+      - PYSPARK_DRIVER_PYTHON=/app/.venv/bin/python
+      - SPARK_LOCAL_IP=0.0.0.0
+      - UV_CACHE_DIR=/tmp/.cache/uv
+    volumes:
+      - ./data:/app/data:ro
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+
+
+
+
+
+
+
+
+      - ./src:/app/src
+      - ./main.py:/app/main.py
+      - ./scripts:/app/scripts
+    command: /app/.venv/bin/python main.py
+    networks:
+      - spark-network
+
+networks:
+  spark-network:
+    driver: bridge
