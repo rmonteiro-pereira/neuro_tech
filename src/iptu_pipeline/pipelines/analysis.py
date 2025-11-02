@@ -248,42 +248,42 @@ class IPTUAnalyzer:
                     )
         else:
             # Pandas implementation
-        # Distribution by type (tipo de uso do imóvel) - historical
+            # Distribution by type (tipo de uso do imóvel) - historical
             if "tipo de uso do imóvel" in columns:
                 dist_by_type = self.df["tipo de uso do imóvel"].value_counts().reset_index()
                 dist_by_type.columns = ["tipo_uso", "quantidade"]
                 dist_by_type["percentual"] = (
-                        dist_by_type["quantidade"] / total_count * 100
+                    dist_by_type["quantidade"] / total_count * 100
                 ).round(2)
                 results["distribution_by_type"] = dist_by_type
-        
-        # Distribution by neighborhood - historical
+            
+            # Distribution by neighborhood - historical
             if "bairro" in columns:
                 dist_by_neighborhood = self.df["bairro"].value_counts().head(20).reset_index()
                 dist_by_neighborhood.columns = ["bairro", "quantidade"]
                 dist_by_neighborhood["percentual"] = (
-                        dist_by_neighborhood["quantidade"] / total_count * 100
+                    dist_by_neighborhood["quantidade"] / total_count * 100
                 ).round(2)
                 results["distribution_by_neighborhood_top20"] = dist_by_neighborhood
-        
-        # Distribution by year (temporal distribution)
-        dist_by_year = self.df["ano do exercício"].value_counts().sort_index().reset_index()
-        dist_by_year.columns = ["ano", "quantidade"]
-        dist_by_year["percentual"] = (
+            
+            # Distribution by year (temporal distribution)
+            dist_by_year = self.df["ano do exercício"].value_counts().sort_index().reset_index()
+            dist_by_year.columns = ["ano", "quantidade"]
+            dist_by_year["percentual"] = (
                 dist_by_year["quantidade"] / total_count * 100
-        ).round(2)
-        results["distribution_by_year"] = dist_by_year
-        
-        # Distribution by construction type
-        if "Tipo de Construção" in columns:
-            dist_by_construction = self.df["Tipo de Construção"].value_counts().reset_index()
-            dist_by_construction.columns = ["tipo_construcao", "quantidade"]
-            dist_by_construction["percentual"] = (
-                    dist_by_construction["quantidade"] / total_count * 100
             ).round(2)
-            results["distribution_by_construction"] = dist_by_construction
-        
-        # Distribution by neighborhood per year (detailed)
+            results["distribution_by_year"] = dist_by_year
+            
+            # Distribution by construction type
+            if "Tipo de Construção" in columns:
+                dist_by_construction = self.df["Tipo de Construção"].value_counts().reset_index()
+                dist_by_construction.columns = ["tipo_construcao", "quantidade"]
+                dist_by_construction["percentual"] = (
+                    dist_by_construction["quantidade"] / total_count * 100
+                ).round(2)
+                results["distribution_by_construction"] = dist_by_construction
+            
+            # Distribution by neighborhood per year (detailed)
             if "bairro" in columns:
                 yearly_neighborhood = []
                 for year in sorted(self.df["ano do exercício"].unique()):
@@ -292,12 +292,12 @@ class IPTUAnalyzer:
                     year_dist.columns = ["bairro", "quantidade"]
                     year_dist["ano"] = year
                     yearly_neighborhood.append(year_dist)
-            
-            if yearly_neighborhood:
-                results["top_neighborhoods_by_year"] = pd.concat(
-                    yearly_neighborhood, 
-                    ignore_index=True
-                )
+                
+                if yearly_neighborhood:
+                    results["top_neighborhoods_by_year"] = pd.concat(
+                        yearly_neighborhood, 
+                        ignore_index=True
+                    )
         
         self.analyses_results["distribution_analysis"] = results
         logger.info("[OK] Distribution analysis complete")
@@ -374,7 +374,7 @@ class IPTUAnalyzer:
                 results["property_value_by_year"] = property_value_by_year
         else:
             # Pandas implementation
-        # Convert valor IPTU to numeric if possible
+            # Convert valor IPTU to numeric if possible
             if "valor IPTU" in columns:
                 # Convert to numeric (handling formatting)
                 df_temp = self.df.copy()
@@ -385,33 +385,33 @@ class IPTUAnalyzer:
                 ).str.strip()
                 valor_iptu_numeric = pd.to_numeric(valor_iptu_clean, errors='coerce')
                 df_temp["valor_iptu_numeric"] = valor_iptu_numeric
-            
-            tax_stats_by_year = df_temp.groupby("ano do exercício")["valor_iptu_numeric"].agg([
-                ('media', 'mean'),
-                ('mediana', 'median'),
-                ('minimo', 'min'),
-                ('maximo', 'max'),
-                ('total', 'sum'),
-                ('count', 'count')
-            ]).reset_index()
-            
-            results["tax_stats_by_year"] = tax_stats_by_year
-            
-            # Average tax by neighborhood (top 20)
-            if "bairro" in columns:
-                df_temp["bairro"] = self.df["bairro"]
-                avg_tax_by_neighborhood = df_temp.groupby("bairro")["valor_iptu_numeric"].agg([
+                
+                tax_stats_by_year = df_temp.groupby("ano do exercício")["valor_iptu_numeric"].agg([
                     ('media', 'mean'),
+                    ('mediana', 'median'),
+                    ('minimo', 'min'),
+                    ('maximo', 'max'),
                     ('total', 'sum'),
                     ('count', 'count')
                 ]).reset_index()
-                avg_tax_by_neighborhood = avg_tax_by_neighborhood.sort_values(
-                    "media", 
-                    ascending=False
-                ).head(20)
-                results["avg_tax_by_neighborhood_top20"] = avg_tax_by_neighborhood
-        
-        # Analyze property value trends
+                
+                results["tax_stats_by_year"] = tax_stats_by_year
+                
+                # Average tax by neighborhood (top 20)
+                if "bairro" in columns:
+                    df_temp["bairro"] = self.df["bairro"]
+                    avg_tax_by_neighborhood = df_temp.groupby("bairro")["valor_iptu_numeric"].agg([
+                        ('media', 'mean'),
+                        ('total', 'sum'),
+                        ('count', 'count')
+                    ]).reset_index()
+                    avg_tax_by_neighborhood = avg_tax_by_neighborhood.sort_values(
+                        "media", 
+                        ascending=False
+                    ).head(20)
+                    results["avg_tax_by_neighborhood_top20"] = avg_tax_by_neighborhood
+            
+            # Analyze property value trends
             if "valor total do imóvel estimado" in columns:
                 # Similar conversion for property value
                 df_temp = self.df.copy()
@@ -420,15 +420,15 @@ class IPTUAnalyzer:
                 ).str.replace('R$', '', regex=False).str.strip()
                 valor_imovel_numeric = pd.to_numeric(valor_imovel_clean, errors='coerce')
                 df_temp["valor_imovel_numeric"] = valor_imovel_numeric
-            
-            property_value_by_year = df_temp.groupby("ano do exercício")["valor_imovel_numeric"].agg([
-                ('media', 'mean'),
-                ('mediana', 'median'),
-                ('total', 'sum'),
-                ('count', 'count')
-            ]).reset_index()
-            
-            results["property_value_by_year"] = property_value_by_year
+                
+                property_value_by_year = df_temp.groupby("ano do exercício")["valor_imovel_numeric"].agg([
+                    ('media', 'mean'),
+                    ('mediana', 'median'),
+                    ('total', 'sum'),
+                    ('count', 'count')
+                ]).reset_index()
+                
+                results["property_value_by_year"] = property_value_by_year
         
         self.analyses_results["tax_value_analysis"] = results
         logger.info("[OK] Tax value trends analysis complete")

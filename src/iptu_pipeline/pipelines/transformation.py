@@ -217,6 +217,8 @@ class DataTransformer:
     def clean_and_optimize(self, df):
         """
         Clean data and optimize memory usage.
+        - Trim whitespace from all string columns
+        - Convert low-cardinality string columns to categorical (< 50 unique values)
         
         Args:
             df: DataFrame to clean and optimize
@@ -227,6 +229,35 @@ class DataTransformer:
         logger.info("Cleaning and optimizing DataFrame")
         
         if self.engine.engine_type == "pyspark":
+            from pyspark.sql.functions import trim, col
+            from pyspark.sql.types import StringType
+            
+            # Step 1: Trim whitespace from all string columns
+            logger.info("Trimming whitespace from string columns")
+            string_columns = [field.name for field in df.schema.fields if isinstance(field.dataType, StringType)]
+            
+            for col_name in string_columns:
+                df = df.withColumn(col_name, trim(col(col_name)))
+            
+            if string_columns:
+                logger.info(f"Trimmed {len(string_columns)} string columns: {string_columns[:5]}{'...' if len(string_columns) > 5 else ''}")
+            
+            # Step 2: Detect categorical columns (for logging/information purposes)
+            # Note: PySpark doesn't have categorical dtype, but Parquet will encode repeated strings efficiently
+            categorical_columns = []
+            if string_columns:
+                # Sample data to detect low cardinality (check first 100k rows for performance)
+                sample_size = min(100000, df.count())
+                sample_df = df.limit(sample_size)
+                
+                for col_name in string_columns:
+                    unique_count = sample_df.select(col_name).distinct().count()
+                    if unique_count < 50:
+                        categorical_columns.append((col_name, unique_count))
+            
+            if categorical_columns:
+                logger.info(f"Detected {len(categorical_columns)} low-cardinality string columns (categorical candidates): {[c[0] for c in categorical_columns]}")
+            
             # PySpark optimizations are handled by Spark Catalyst optimizer
             # Don't cache here - can cause OOM when processing multiple years
             return df
@@ -234,10 +265,28 @@ class DataTransformer:
             # Pandas optimizations
             df_clean = df.copy()
             
-            # Convert object columns to category where appropriate
-            for col in df_clean.select_dtypes(include=['object']).columns:
-                if df_clean[col].nunique() / len(df_clean) < 0.5:  # Less than 50% unique values
+            # Step 1: Trim whitespace from all string/object columns
+            logger.info("Trimming whitespace from string columns")
+            string_columns = df_clean.select_dtypes(include=['object']).columns.tolist()
+            
+            for col_name in string_columns:
+                # Trim whitespace (str.strip() preserves NaN values as NaN)
+                df_clean[col_name] = df_clean[col_name].str.strip()
+            
+            if string_columns:
+                logger.info(f"Trimmed {len(string_columns)} string columns")
+            
+            # Step 2: Convert low-cardinality string columns to category
+            # Changed from < 50% ratio to < 50 absolute unique values
+            categorical_columns = []
+            for col in string_columns:
+                unique_count = df_clean[col].nunique()
+                if unique_count < 50:
                     df_clean[col] = df_clean[col].astype('category')
+                    categorical_columns.append((col, unique_count))
+            
+            if categorical_columns:
+                logger.info(f"Converted {len(categorical_columns)} columns to categorical: {[c[0] for c in categorical_columns]}")
             
             # Optimize numeric types
             for col in df_clean.select_dtypes(include=[np.integer]).columns:
