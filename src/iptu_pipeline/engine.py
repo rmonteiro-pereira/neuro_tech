@@ -5,6 +5,7 @@ Allows switching between Pandas and PySpark without changing pipeline code.
 from typing import Literal, Optional, Union
 from pathlib import Path
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Try to import PySpark
@@ -56,26 +57,112 @@ class DataEngine:
             raise RuntimeError("PySpark is not available")
         
         import os
+        import sys
+        
+        # Set default SPARK_VERSION for PyDeequ (will be refined after session creation)
+        # PyDeequ needs this before importing to determine which JARs to use
+        if "SPARK_VERSION" not in os.environ:
+            os.environ["SPARK_VERSION"] = "3.5"  # Default for Spark 3.5.x, will refine if needed
         
         # Check if running in Docker/cluster mode
         spark_master = os.getenv("SPARK_MASTER", "local[*]")
+        
+        # Configure Python path for Spark workers (use venv Python if available)
+        python_executable = sys.executable
+        if not os.getenv("PYSPARK_PYTHON"):
+            os.environ["PYSPARK_PYTHON"] = python_executable
+        if not os.getenv("PYSPARK_DRIVER_PYTHON"):
+            os.environ["PYSPARK_DRIVER_PYTHON"] = python_executable
         
         builder = SparkSession.builder \
             .appName("IPTU_Pipeline") \
             .config("spark.sql.adaptive.enabled", "true") \
             .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
             .config("spark.sql.adaptive.skewJoin.enabled", "true") \
-            .config("spark.driver.memory", "4g") \
-            .config("spark.executor.memory", "4g") \
-            .config("spark.sql.shuffle.partitions", "200")
+            .config("spark.driver.memory", "16g") \
+            .config("spark.executor.memory", "16g") \
+            .config("spark.sql.shuffle.partitions", "200") \
+            .config("spark.sql.warehouse.dir", str(Path(__file__).parent.parent.parent / "spark-warehouse")) \
+            .config("spark.pyspark.python", python_executable) \
+            .config("spark.pyspark.driver.python", python_executable) \
+            .config("spark.driver.host", "localhost") \
+            .config("spark.driver.bindAddress", "127.0.0.1") \
+            .config("spark.network.timeout", "600s") \
+            .config("spark.sql.execution.arrow.pyspark.enabled", "false") \
+            .config("spark.sql.debug.maxToStringFields", "200")
         
-        # Configure Delta Lake if available (must be done on builder, not session)
+        # Set default SPARK_VERSION for PyDeequ (will be refined after session creation)
+        # PyDeequ needs this before importing to determine which JARs to use
+        if "SPARK_VERSION" not in os.environ:
+            os.environ["SPARK_VERSION"] = "3.5"  # Default for Spark 3.5.x, will refine if needed
+        
+        # Configure Delta Lake and PyDeequ JARs together
+        # IMPORTANT: configure_spark_with_delta_pip sets spark.jars.packages internally.
+        # If we also need PyDeequ, we need to manually combine packages to avoid overwriting.
+        pydeequ_available = False
+        pydeequ_packages = None
+        pydeequ_excludes = None
+        
+        # Check if PyDeequ is available (needed to decide whether to use configure_spark_with_delta_pip)
         try:
-            from delta import configure_spark_with_delta_pip
-            builder = configure_spark_with_delta_pip(builder)
-            logger.info("Delta Lake configured for Spark session")
+            import pydeequ
+            pydeequ_available = True
+            pydeequ_packages = pydeequ.deequ_maven_coord
+            pydeequ_excludes = pydeequ.f2j_maven_coord
+            logger.debug(f"PyDeequ/Deequ detected: {pydeequ.deequ_maven_coord}")
         except ImportError:
-            logger.debug("Delta Lake not available, will use Parquet format")
+            logger.debug("PyDeequ not available, data quality checks will use basic validation")
+        except Exception as e:
+            logger.debug(f"Could not detect PyDeequ: {str(e)}, basic validation will be used")
+        
+        # Configure Delta Lake
+        # If PyDeequ is also needed, we'll manually set packages instead of using configure_spark_with_delta_pip
+        # to avoid package overwrite issues
+        if pydeequ_available:
+            # Both Delta and PyDeequ needed: manually configure Delta packages along with PyDeequ
+            # Delta Lake package format: io.delta:delta-spark_2.12:VERSION
+            # We'll use a version that matches delta-spark>=3.3.2 from requirements
+            try:
+                # Try to import delta to check if it's available
+                import delta
+                # Manually construct Delta package (matches what configure_spark_with_delta_pip would set)
+                # Using Spark 2.12 scala version (standard for Spark 3.x)
+                delta_packages = "io.delta:delta-spark_2.12:3.3.2"
+                
+                # Combine Delta and PyDeequ packages
+                combined_packages = f"{delta_packages},{pydeequ_packages}"
+                builder = builder.config("spark.jars.packages", combined_packages)
+                if pydeequ_excludes:
+                    builder = builder.config("spark.jars.excludes", pydeequ_excludes)
+                
+                # Manually add Delta extensions and catalog (required for Delta to work)
+                builder = builder.config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+                                .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+                                .config("spark.databricks.delta.properties.defaults.enableChangeDataFeed", "false") \
+                                .config("spark.databricks.delta.columnMapping.enabled", "true") \
+                                .config("spark.databricks.delta.columnMapping.mode", "name")
+                logger.info("Delta Lake + PyDeequ configured: JARs loaded + extensions set (manual package combination)")
+            except ImportError:
+                logger.debug("Delta Lake not available (optional)")
+            except Exception as e:
+                logger.warning(f"Could not configure Delta Lake manually: {str(e)}")
+        else:
+            # Only Delta needed: use configure_spark_with_delta_pip (standard approach)
+            try:
+                from delta import configure_spark_with_delta_pip
+                builder = configure_spark_with_delta_pip(builder)
+                
+                # Manually add extensions and catalog (required for Delta to work)
+                builder = builder.config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+                                .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+                                .config("spark.databricks.delta.properties.defaults.enableChangeDataFeed", "false") \
+                                .config("spark.databricks.delta.columnMapping.enabled", "true") \
+                                .config("spark.databricks.delta.columnMapping.mode", "name")
+                logger.info("Delta Lake configured: JARs loaded + extensions set")
+            except ImportError:
+                logger.debug("Delta Lake not available (optional)")
+            except Exception as e:
+                logger.warning(f"Could not configure Delta Lake: {str(e)}")
         
         # If running in Docker with cluster, use master URL
         if spark_master.startswith("spark://"):
@@ -86,7 +173,16 @@ class DataEngine:
             logger.info(f"Using Spark in {spark_master} mode")
         
         spark = builder.getOrCreate()
+        spark.sparkContext.setLogLevel("WARN")  # Reduce Spark log verbosity
+        
+        # Refine SPARK_VERSION based on actual Spark version
+        spark_version = spark.version
+        spark_version_major_minor = '.'.join(spark_version.split('.')[:2])  # e.g., "3.5.5" -> "3.5"
+        os.environ["SPARK_VERSION"] = spark_version_major_minor
+        
         logger.info(f"Spark session created - Version: {spark.version}")
+        logger.debug(f"SPARK_VERSION set to: {spark_version_major_minor} (for PyDeequ)")
+        
         return spark
     
     def read_csv(self, file_path: Path, **kwargs) -> Union[pd.DataFrame, SparkDataFrame]:

@@ -323,11 +323,31 @@ class DataQualityValidator:
         # Validate year consistency
         if "ano do exercício" in df.columns:
             year_values = df["ano do exercício"].unique()
-            if len(year_values) > 1 or year_values[0] != year:
+            import numpy as np
+            
+            # Normalize year values - handle arrays/lists and convert to int
+            normalized_years = []
+            for y in year_values:
+                # Extract first element if it's an array/list
+                if isinstance(y, (list, np.ndarray)):
+                    y = y[0] if len(y) > 0 else None
+                # Convert to int (handles string years)
+                if y is not None:
+                    try:
+                        normalized_years.append(int(y))
+                    except (ValueError, TypeError):
+                        normalized_years.append(y)
+            
+            if len(normalized_years) == 0:
+                result["errors"].append("Year column is empty")
+                result["metrics"]["year_consistency"] = False
+            elif len(normalized_years) > 1 or normalized_years[0] != year:
                 result["errors"].append(
-                    f"Year mismatch: expected {year}, found {year_values}"
+                    f"Year mismatch: expected {year}, found {normalized_years}"
                 )
-            result["metrics"]["year_consistency"] = all(y == year for y in year_values)
+                result["metrics"]["year_consistency"] = False
+            else:
+                result["metrics"]["year_consistency"] = True
         
         # Validate CEP format (should be numeric, 8 digits)
         if "CEP" in df.columns:

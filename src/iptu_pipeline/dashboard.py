@@ -15,7 +15,7 @@ try:
 except ImportError:
     PLOTLY_AVAILABLE = False
 
-from iptu_pipeline.config import ANALYSIS_OUTPUT_PATH, OUTPUT_DIR
+from iptu_pipeline.config import ANALYSIS_OUTPUT_PATH, GOLD_DIR
 from iptu_pipeline.utils.logger import setup_logger
 from iptu_pipeline.pipelines.analysis import IPTUAnalyzer
 
@@ -244,7 +244,7 @@ class IPTUDashboard:
             logger.error("Plotly not available. Cannot generate dashboard.")
             return None
         
-        output_path = output_path or OUTPUT_DIR / "dashboard.html"
+        output_path = output_path or GOLD_DIR / "dashboard.html"
         
         logger.info(f"Generating dashboard HTML: {output_path}")
         
@@ -282,7 +282,7 @@ class IPTUDashboard:
         Returns:
             Path to generated report
         """
-        output_path = output_path or OUTPUT_DIR / "summary_report.txt"
+        output_path = output_path or GOLD_DIR / "summary_report.txt"
         
         logger.info(f"Generating summary report: {output_path}")
         

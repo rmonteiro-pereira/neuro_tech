@@ -24,7 +24,7 @@ try:
 except ImportError:
     PLOTLY_AVAILABLE = False
 
-from iptu_pipeline.config import ANALYSIS_OUTPUT_PATH, OUTPUT_DIR
+from iptu_pipeline.config import ANALYSIS_OUTPUT_PATH, PLOTS_OUTPUT_PATH
 from iptu_pipeline.utils.logger import setup_logger
 
 logger = setup_logger("visualizations")
@@ -47,8 +47,8 @@ class IPTUVizualizer:
             analysis_path: Path to analysis results directory. Uses default if None.
         """
         self.analysis_path = analysis_path or ANALYSIS_OUTPUT_PATH
-        self.plots_output_path = OUTPUT_DIR / "plots"
-        self.plots_output_path.mkdir(exist_ok=True)
+        self.plots_output_path = PLOTS_OUTPUT_PATH
+        self.plots_output_path.mkdir(parents=True, exist_ok=True)
         
         if not MATPLOTLIB_AVAILABLE:
             logger.warning("Matplotlib not available. Some visualizations will be skipped.")
@@ -57,6 +57,9 @@ class IPTUVizualizer:
         """Load analysis data from CSV file."""
         file_path = self.analysis_path / analysis_type / filename
         if not file_path.exists():
+            # Only warn if analysis directory exists (analysis was run but file missing)
+            # If directory doesn't exist, analysis was likely skipped (e.g., PySpark mode)
+            if self.analysis_path.exists() and (self.analysis_path / analysis_type).exists():
             logger.warning(f"File not found: {file_path}")
             return pd.DataFrame()
         return pd.read_csv(file_path)

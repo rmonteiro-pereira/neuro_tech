@@ -34,18 +34,26 @@ class Settings(BaseSettings):
         description="Directory for log files"
     )
     
-    # Medallion architecture directories
+    # Medallion architecture directories (all under data/)
+    RAW_DIR: Path = Field(
+        default_factory=lambda: Path(__file__).parent.parent.parent / "data" / "raw",
+        description="Raw layer: source data files, no processing"
+    )
     BRONZE_DIR: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent.parent / "outputs" / "bronze",
-        description="Bronze layer: raw ingested data"
+        default_factory=lambda: Path(__file__).parent.parent.parent / "data" / "bronze",
+        description="Bronze layer: cataloged and cleaned data (Parquet format)"
     )
     SILVER_DIR: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent.parent / "outputs" / "silver",
-        description="Silver layer: cleaned and validated data"
+        default_factory=lambda: Path(__file__).parent.parent.parent / "data" / "silver",
+        description="Silver layer: transformed and consolidated data"
     )
     GOLD_DIR: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent.parent / "outputs" / "gold",
-        description="Gold layer: business-ready aggregated data"
+        default_factory=lambda: Path(__file__).parent.parent.parent / "data" / "gold",
+        description="Gold layer: refined data ready for consumption, analysis, and plots"
+    )
+    CATALOG_DIR: Path = Field(
+        default_factory=lambda: Path(__file__).parent.parent.parent / "data" / "catalog",
+        description="Data catalog: tracks metadata across all medallion layers (raw, bronze, silver, gold)"
     )
     
     # Data years configuration
@@ -71,8 +79,15 @@ class Settings(BaseSettings):
     
     @property
     def analysis_output_path(self) -> Path:
-        """Path to analysis output directory."""
-        path = self.OUTPUT_DIR / "analyses"
+        """Path to analysis output directory (in gold layer)."""
+        path = self.GOLD_DIR / "analyses"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    
+    @property
+    def plots_output_path(self) -> Path:
+        """Path to plots output directory (in gold layer)."""
+        path = self.GOLD_DIR / "plots"
         path.mkdir(parents=True, exist_ok=True)
         return path
     
@@ -92,7 +107,7 @@ class Settings(BaseSettings):
         description="Data processing engine: 'pandas' or 'pyspark'"
     )
     
-    @field_validator('BASE_DIR', 'DATA_DIR', 'OUTPUT_DIR', 'LOG_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', mode='before')
+    @field_validator('BASE_DIR', 'DATA_DIR', 'OUTPUT_DIR', 'LOG_DIR', 'RAW_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', 'CATALOG_DIR', mode='before')
     @classmethod
     def ensure_paths(cls, v) -> Path:
         """Ensure path is a Path object."""
@@ -100,7 +115,7 @@ class Settings(BaseSettings):
             return Path(v)
         return v
     
-    @field_validator('OUTPUT_DIR', 'LOG_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', mode='after')
+    @field_validator('DATA_DIR', 'OUTPUT_DIR', 'LOG_DIR', 'RAW_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', 'CATALOG_DIR', mode='after')
     @classmethod
     def create_directories(cls, v: Path) -> Path:
         """Create directories if they don't exist."""
@@ -109,12 +124,27 @@ class Settings(BaseSettings):
     
     @property
     def data_paths(self) -> Dict[int, Path]:
-        """Generate data paths dictionary based on configured years and directories."""
+        """Generate data paths dictionary based on configured years and directories.
+        
+        NOTE: Data files are stored in RAW_DIR (data/raw/) as per medallion architecture.
+        Structure: data/raw/iptu_2020/iptu_2020.csv, data/raw/iptu_2021/iptu_2021.csv, etc.
+        Example: C:\\Users\\Rodrigo\\Documents\\Entrevistas\\neuro_tech\\data\\raw\\iptu_2020\\iptu_2020.csv
+        """
         paths = {}
         for year in self.CSV_YEARS:
-            paths[year] = self.DATA_DIR / f"iptu_{year}" / f"iptu_{year}.csv"
+            # Check subdirectory location first (e.g., data/raw/iptu_2020/iptu_2020.csv)
+            file_path = self.RAW_DIR / f"iptu_{year}" / f"iptu_{year}.csv"
+            if not file_path.exists():
+                # Fallback to direct location (e.g., data/raw/iptu_2020.csv)
+                file_path = self.RAW_DIR / f"iptu_{year}.csv"
+            paths[year] = file_path
         for year in self.JSON_YEARS:
-            paths[year] = self.DATA_DIR / f"iptu_{year}_json" / f"iptu_{year}_json.json"
+            # Check subdirectory location first (e.g., data/raw/iptu_2024_json/iptu_2024_json.json)
+            file_path = self.RAW_DIR / f"iptu_{year}_json" / f"iptu_{year}_json.json"
+            if not file_path.exists():
+                # Fallback to direct location (e.g., data/raw/iptu_2024_json.json)
+                file_path = self.RAW_DIR / f"iptu_{year}_json.json"
+            paths[year] = file_path
         return paths
 
 
@@ -175,12 +205,15 @@ BASE_DIR = settings.BASE_DIR
 DATA_DIR = settings.DATA_DIR
 OUTPUT_DIR = settings.OUTPUT_DIR
 LOG_DIR = settings.LOG_DIR
+RAW_DIR = settings.RAW_DIR
 BRONZE_DIR = settings.BRONZE_DIR
 SILVER_DIR = settings.SILVER_DIR
 GOLD_DIR = settings.GOLD_DIR
+CATALOG_DIR = settings.CATALOG_DIR
 CSV_YEARS = settings.CSV_YEARS
 JSON_YEARS = settings.JSON_YEARS
 DATA_PATHS = settings.data_paths
 CONSOLIDATED_DATA_PATH = settings.consolidated_data_path
 PROCESSED_DATA_PATH = settings.processed_data_path
 ANALYSIS_OUTPUT_PATH = settings.analysis_output_path
+PLOTS_OUTPUT_PATH = settings.plots_output_path
