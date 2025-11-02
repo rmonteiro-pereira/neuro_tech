@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL for Airflow metadata (Bitnami - simpler config)
+  # PostgreSQL for Airflow metadata (Bitnami)
   postgres:
     image: docker.io/bitnami/postgresql:16
     environment:
@@ -14,7 +14,15 @@ services:
     networks:
       - iptu-network
 
-  # Redis not needed for LocalExecutor (simplest setup)
+  # Redis for Airflow Celery (Bitnami)
+  redis:
+    image: docker.io/bitnami/redis:7.4
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - redis_data:/bitnami/redis
+    networks:
+      - iptu-network
 
   # Apache Spark Master
   spark-master:
@@ -58,24 +66,26 @@ services:
     networks:
       - iptu-network
 
-  # Airflow Webserver (Bitnami - simpler config)
+  # Bitnami Airflow Webserver
   airflow-webserver:
     image: docker.io/bitnami/airflow:2.8.0
     container_name: airflow-webserver
     depends_on:
       - postgres
+      - redis
     environment:
-      - AIRFLOW_EXECUTOR=LocalExecutor
+      - AIRFLOW_EXECUTOR=CeleryExecutor
       - AIRFLOW_DATABASE_HOST=postgres
       - AIRFLOW_DATABASE_PORT_NUMBER=5432
       - AIRFLOW_DATABASE_USER=bn_airflow
       - AIRFLOW_DATABASE_NAME=bitnami_airflow
       - AIRFLOW_DATABASE_PASSWORD=airflow_password
+      - AIRFLOW_REDIS_HOST=redis
+      - AIRFLOW_REDIS_PORT_NUMBER=6379
       - AIRFLOW_LOAD_EXAMPLES=no
       - AIRFLOW_FERNET_KEY=''
       - AIRFLOW_WEBSERVER_USERNAME=admin
       - AIRFLOW_WEBSERVER_PASSWORD=admin
-      - SPARK_MASTER_URL=spark://spark-master:7077
     volumes:
       - ./dags:/opt/bitnami/airflow/dags
       - ./logs:/opt/bitnami/airflow/logs
@@ -83,31 +93,31 @@ services:
       - ./data:/opt/bitnami/airflow/data
       - ./outputs:/opt/bitnami/airflow/outputs
       - ./src:/opt/bitnami/airflow/src
-      - ./requirements.txt:/opt/bitnami/airflow/requirements.txt
-      - ./requirements-pyspark.txt:/opt/bitnami/airflow/requirements-pyspark.txt
     ports:
       - "8081:8080"
     command: webserver
     networks:
       - iptu-network
 
-  # Airflow Scheduler (Bitnami - simpler config)
+  # Bitnami Airflow Scheduler
   airflow-scheduler:
     image: docker.io/bitnami/airflow:2.8.0
     container_name: airflow-scheduler
     depends_on:
       - postgres
+      - redis
       - airflow-webserver
     environment:
-      - AIRFLOW_EXECUTOR=LocalExecutor
+      - AIRFLOW_EXECUTOR=CeleryExecutor
       - AIRFLOW_DATABASE_HOST=postgres
       - AIRFLOW_DATABASE_PORT_NUMBER=5432
       - AIRFLOW_DATABASE_USER=bn_airflow
       - AIRFLOW_DATABASE_NAME=bitnami_airflow
       - AIRFLOW_DATABASE_PASSWORD=airflow_password
+      - AIRFLOW_REDIS_HOST=redis
+      - AIRFLOW_REDIS_PORT_NUMBER=6379
       - AIRFLOW_LOAD_EXAMPLES=no
       - AIRFLOW_FERNET_KEY=''
-      - SPARK_MASTER_URL=spark://spark-master:7077
     volumes:
       - ./dags:/opt/bitnami/airflow/dags
       - ./logs:/opt/bitnami/airflow/logs
@@ -115,14 +125,43 @@ services:
       - ./data:/opt/bitnami/airflow/data
       - ./outputs:/opt/bitnami/airflow/outputs
       - ./src:/opt/bitnami/airflow/src
-      - ./requirements.txt:/opt/bitnami/airflow/requirements.txt
-      - ./requirements-pyspark.txt:/opt/bitnami/airflow/requirements-pyspark.txt
     command: scheduler
+    networks:
+      - iptu-network
+
+  # Bitnami Airflow Worker (for CeleryExecutor)
+  airflow-worker:
+    image: docker.io/bitnami/airflow:2.8.0
+    container_name: airflow-worker
+    depends_on:
+      - postgres
+      - redis
+      - airflow-scheduler
+    environment:
+      - AIRFLOW_EXECUTOR=CeleryExecutor
+      - AIRFLOW_DATABASE_HOST=postgres
+      - AIRFLOW_DATABASE_PORT_NUMBER=5432
+      - AIRFLOW_DATABASE_USER=bn_airflow
+      - AIRFLOW_DATABASE_NAME=bitnami_airflow
+      - AIRFLOW_DATABASE_PASSWORD=airflow_password
+      - AIRFLOW_REDIS_HOST=redis
+      - AIRFLOW_REDIS_PORT_NUMBER=6379
+      - AIRFLOW_LOAD_EXAMPLES=no
+      - AIRFLOW_FERNET_KEY=''
+    volumes:
+      - ./dags:/opt/bitnami/airflow/dags
+      - ./logs:/opt/bitnami/airflow/logs
+      - ./plugins:/opt/bitnami/airflow/plugins
+      - ./data:/opt/bitnami/airflow/data
+      - ./outputs:/opt/bitnami/airflow/outputs
+      - ./src:/opt/bitnami/airflow/src
+    command: worker
     networks:
       - iptu-network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   iptu-network:

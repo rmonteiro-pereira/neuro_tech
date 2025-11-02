@@ -256,7 +256,7 @@ class IPTUAnalyzer:
                     dist_by_type["quantidade"] / total_count * 100
                 ).round(2)
                 results["distribution_by_type"] = dist_by_type
-            
+        
             # Distribution by neighborhood - historical
             if "bairro" in columns:
                 dist_by_neighborhood = self.df["bairro"].value_counts().head(20).reset_index()
@@ -265,7 +265,7 @@ class IPTUAnalyzer:
                     dist_by_neighborhood["quantidade"] / total_count * 100
                 ).round(2)
                 results["distribution_by_neighborhood_top20"] = dist_by_neighborhood
-            
+        
             # Distribution by year (temporal distribution)
             dist_by_year = self.df["ano do exercício"].value_counts().sort_index().reset_index()
             dist_by_year.columns = ["ano", "quantidade"]
@@ -273,7 +273,7 @@ class IPTUAnalyzer:
                 dist_by_year["quantidade"] / total_count * 100
             ).round(2)
             results["distribution_by_year"] = dist_by_year
-            
+        
             # Distribution by construction type
             if "Tipo de Construção" in columns:
                 dist_by_construction = self.df["Tipo de Construção"].value_counts().reset_index()
@@ -282,7 +282,7 @@ class IPTUAnalyzer:
                     dist_by_construction["quantidade"] / total_count * 100
                 ).round(2)
                 results["distribution_by_construction"] = dist_by_construction
-            
+        
             # Distribution by neighborhood per year (detailed)
             if "bairro" in columns:
                 yearly_neighborhood = []
@@ -410,7 +410,7 @@ class IPTUAnalyzer:
                         ascending=False
                     ).head(20)
                     results["avg_tax_by_neighborhood_top20"] = avg_tax_by_neighborhood
-            
+        
             # Analyze property value trends
             if "valor total do imóvel estimado" in columns:
                 # Similar conversion for property value
@@ -473,19 +473,19 @@ class IPTUAnalyzer:
             analysis_dir.mkdir(exist_ok=True)
             
             for result_name, result_df in analysis_results.items():
-                    file_path = analysis_dir / f"{result_name}.csv"
+                file_path = analysis_dir / f"{result_name}.csv"
                 
-            if self.is_spark and hasattr(result_df, 'toPandas'):
-                # Convert PySpark DataFrame to Pandas for CSV export
-                try:
-                    pandas_df = result_df.toPandas()
-                    pandas_df.to_csv(file_path, index=False)
-                    logger.info(f"  Saved: {file_path} ({len(pandas_df)} rows)")
-                except Exception as e:
-                    logger.warning(f"  Failed to save {file_path}: {e}")
-            elif isinstance(result_df, pd.DataFrame):
-                result_df.to_csv(file_path, index=False)
-                logger.info(f"  Saved: {file_path} ({len(result_df)} rows)")
+                if self.is_spark and hasattr(result_df, 'toPandas'):
+                    # Convert PySpark DataFrame to Pandas for CSV export
+                    try:
+                        pandas_df = result_df.toPandas()
+                        pandas_df.to_csv(file_path, index=False)
+                        logger.info(f"  Saved: {file_path} ({len(pandas_df)} rows)")
+                    except Exception as e:
+                        logger.warning(f"  Failed to save {file_path}: {e}")
+                elif isinstance(result_df, pd.DataFrame):
+                    result_df.to_csv(file_path, index=False)
+                    logger.info(f"  Saved: {file_path} ({len(result_df)} rows)")
             else:
                 logger.warning(f"  Skipping {result_name}: unsupported DataFrame type")
         
