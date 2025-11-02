@@ -104,7 +104,8 @@ def export_refined_dataset(
                 row_count_spark = data_engine.get_count(delta_df)
                 logger.info(f"Delta table loaded: {row_count_spark:,} rows")
                 
-                pandas_df = delta_df.toPandas()
+                # Use engine's to_pandas method which handles DateType conversion
+                pandas_df = data_engine.to_pandas(delta_df)
                 logger.info("Converted Delta table to Pandas with correct column names")
             except Exception as delta_error:
                 logger.warning(f"Delta read failed: {delta_error}, trying Parquet...")

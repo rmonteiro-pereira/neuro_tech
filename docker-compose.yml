@@ -1,31 +1,28 @@
-version: '3.8'
-
 services:
-  # PostgreSQL for Airflow metadata (Bitnami - simpler config)
+  # PostgreSQL for Airflow metadata
   postgres:
-    image: docker.io/bitnami/postgresql:16
+    image: postgres:15-alpine
     environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - POSTGRESQL_USERNAME=bn_airflow
-      - POSTGRESQL_DATABASE=bitnami_airflow
-      - POSTGRESQL_PASSWORD=airflow_password
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     volumes:
-      - postgres_data:/bitnami/postgresql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
     networks:
       - iptu-network
 
-  # Redis not needed for LocalExecutor (simplest setup)
-
   # Apache Spark Master
   spark-master:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.7-scala2.12-java11-python3-r-ubuntu
     container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     environment:
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
     ports:
       - "8080:8080"
       - "7077:7077"
@@ -38,19 +35,14 @@ services:
 
   # Apache Spark Worker
   spark-worker:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.7-scala2.12-java11-python3-r-ubuntu
     container_name: spark-worker
     depends_on:
       - spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=2g
       - SPARK_WORKER_CORES=2
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
     volumes:
       - ./data:/opt/data
       - ./outputs:/opt/outputs
@@ -58,66 +50,114 @@ services:
     networks:
       - iptu-network
 
-  # Airflow Webserver (Bitnami - simpler config)
-  airflow-webserver:
-    image: docker.io/bitnami/airflow:2.8.0
-    container_name: airflow-webserver
+  # Airflow Database Init
+  airflow-init:
+    image: apache/airflow:2.8.0-python3.11
+    container_name: airflow-init
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      - AIRFLOW_EXECUTOR=LocalExecutor
-      - AIRFLOW_DATABASE_HOST=postgres
-      - AIRFLOW_DATABASE_PORT_NUMBER=5432
-      - AIRFLOW_DATABASE_USER=bn_airflow
-      - AIRFLOW_DATABASE_NAME=bitnami_airflow
-      - AIRFLOW_DATABASE_PASSWORD=airflow_password
-      - AIRFLOW_LOAD_EXAMPLES=no
-      - AIRFLOW_FERNET_KEY=''
-      - AIRFLOW_WEBSERVER_USERNAME=admin
-      - AIRFLOW_WEBSERVER_PASSWORD=admin
-      - SPARK_MASTER_URL=spark://spark-master:7077
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=''
     volumes:
-      - ./dags:/opt/bitnami/airflow/dags
-      - ./logs:/opt/bitnami/airflow/logs
-      - ./plugins:/opt/bitnami/airflow/plugins
-      - ./data:/opt/bitnami/airflow/data
-      - ./outputs:/opt/bitnami/airflow/outputs
-      - ./src:/opt/bitnami/airflow/src
-      - ./requirements.txt:/opt/bitnami/airflow/requirements.txt
-      - ./requirements-pyspark.txt:/opt/bitnami/airflow/requirements-pyspark.txt
-    ports:
-      - "8081:8080"
-    command: webserver
+      - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./requirements-pyspark.txt:/opt/airflow/requirements-pyspark.txt
+      - ./install-requirements.sh:/opt/airflow/install-requirements.sh
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        chmod +x /opt/airflow/install-requirements.sh
+        /opt/airflow/install-requirements.sh
+        airflow db init
+        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
     networks:
       - iptu-network
 
-  # Airflow Scheduler (Bitnami - simpler config)
+  # Airflow Webserver (Official Apache image)
+  airflow-webserver:
+    image: apache/airflow:2.8.0-python3.11
+    container_name: airflow-webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=''
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SKIP_PYSPARK=true
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./data:/opt/airflow/data
+      - ./outputs:/opt/airflow/outputs
+      - ./src:/opt/airflow/src
+      - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./requirements-pyspark.txt:/opt/airflow/requirements-pyspark.txt
+      - ./install-requirements.sh:/opt/airflow/install-requirements.sh
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        chmod +x /opt/airflow/install-requirements.sh
+        /opt/airflow/install-requirements.sh
+        exec /usr/bin/dumb-init -- /entrypoint webserver
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 300s
+      start_period: 300s
+      retries: 10
+    networks:
+      - iptu-network
+
+  # Airflow Scheduler (Official Apache image)
   airflow-scheduler:
-    image: docker.io/bitnami/airflow:2.8.0
+    image: apache/airflow:2.8.0-python3.11
     container_name: airflow-scheduler
     depends_on:
-      - postgres
-      - airflow-webserver
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-webserver:
+        condition: service_healthy
     environment:
-      - AIRFLOW_EXECUTOR=LocalExecutor
-      - AIRFLOW_DATABASE_HOST=postgres
-      - AIRFLOW_DATABASE_PORT_NUMBER=5432
-      - AIRFLOW_DATABASE_USER=bn_airflow
-      - AIRFLOW_DATABASE_NAME=bitnami_airflow
-      - AIRFLOW_DATABASE_PASSWORD=airflow_password
-      - AIRFLOW_LOAD_EXAMPLES=no
-      - AIRFLOW_FERNET_KEY=''
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=''
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
       - SPARK_MASTER_URL=spark://spark-master:7077
     volumes:
-      - ./dags:/opt/bitnami/airflow/dags
-      - ./logs:/opt/bitnami/airflow/logs
-      - ./plugins:/opt/bitnami/airflow/plugins
-      - ./data:/opt/bitnami/airflow/data
-      - ./outputs:/opt/bitnami/airflow/outputs
-      - ./src:/opt/bitnami/airflow/src
-      - ./requirements.txt:/opt/bitnami/airflow/requirements.txt
-      - ./requirements-pyspark.txt:/opt/bitnami/airflow/requirements-pyspark.txt
-    command: scheduler
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./data:/opt/airflow/data
+      - ./outputs:/opt/airflow/outputs
+      - ./src:/opt/airflow/src
+      - ./requirements.txt:/opt/airflow/requirements.txt
+      - ./requirements-pyspark.txt:/opt/airflow/requirements-pyspark.txt
+      - ./install-requirements.sh:/opt/airflow/install-requirements.sh
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        chmod +x /opt/airflow/install-requirements.sh
+        /opt/airflow/install-requirements.sh
+        exec /usr/bin/dumb-init -- /entrypoint scheduler
     networks:
       - iptu-network
 
@@ -127,4 +167,3 @@ volumes:
 networks:
   iptu-network:
     driver: bridge
-

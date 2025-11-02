@@ -51,7 +51,11 @@ class DataQualityValidator:
         if self.engine and self.engine.engine_type == "pyspark":
             df = self.engine.to_pandas(df)
         elif hasattr(df, 'toPandas'):  # Spark DataFrame
-            df = df.toPandas()
+            # Use engine's to_pandas method which handles DateType conversion
+            if self.engine:
+                df = self.engine.to_pandas(df)
+            else:
+                df = df.toPandas()
         
         results = {
             "year": year,
