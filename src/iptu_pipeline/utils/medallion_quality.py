@@ -73,38 +73,76 @@ class MedallionDataQuality:
             
             # Check for null counts using PyDeequ
             try:
-                from pydeequ import PyDeequSession
                 from pydeequ.profiles import ColumnProfilerRunner
                 
-                spark_session = PyDeequSession(self.spark)
-                runner = ColumnProfilerRunner(spark_session).onData(df)
-                profile_df = runner.run()
+                # ColumnProfilerRunner expects raw SparkSession, not PyDeequSession
+                # PyDeequSession is only needed for certain operations, not profiling
+                runner = ColumnProfilerRunner(self.spark).onData(df)
+                profile_result = runner.run()
                 
-                # Extract profile information
-                profile_rows = profile_df.collect()
+                # Extract profile information (API may return dict or DataFrame)
                 total_nulls = 0
                 
-                for row in profile_rows:
-                    column_name = row["column"]
-                    null_count = row.get("completeness", 0)
-                    if null_count > 0:
-                        null_pct = (null_count / row_count) * 100
-                        if null_pct > 50:
-                            results["warnings"].append(
-                                f"Column '{column_name}' has {null_pct:.1f}% null values"
-                            )
-                        total_nulls += null_count
+                if hasattr(profile_result, 'profiles'):
+                    # Older PyDeequ API: profile_result.profiles is a dict
+                    for column_name, profile in profile_result.profiles.items():
+                        # Completeness is 0.0-1.0, where 1.0 means no nulls
+                        completeness = getattr(profile, 'completeness', 1.0)
+                        null_count = int((1.0 - completeness) * row_count) if completeness < 1.0 else 0
+                        
+                        if null_count > 0:
+                            null_pct = (null_count / row_count) * 100
+                            if null_pct > 50:
+                                results["warnings"].append(
+                                    f"Column '{column_name}' has {null_pct:.1f}% null values"
+                                )
+                            total_nulls += null_count
+                elif hasattr(profile_result, 'collect'):
+                    # Newer PyDeequ API: profile_result is a DataFrame
+                    profile_rows = profile_result.collect()
+                    for row in profile_rows:
+                        column_name = row.get("column", row.get("Column", "unknown"))
+                        # Handle different column names in the profile DataFrame
+                        completeness = row.get("completeness", row.get("Completeness", 1.0))
+                        if isinstance(completeness, (int, float)):
+                            null_count = int((1.0 - completeness) * row_count) if completeness < 1.0 else 0
+                        else:
+                            # If completeness is already a count
+                            null_count = row_count - int(completeness) if isinstance(completeness, (int, float)) else 0
+                        
+                        if null_count > 0:
+                            null_pct = (null_count / row_count) * 100
+                            if null_pct > 50:
+                                results["warnings"].append(
+                                    f"Column '{column_name}' has {null_pct:.1f}% null values"
+                                )
+                            total_nulls += null_count
+                else:
+                    logger.warning(f"Unknown profile result format: {type(profile_result)}")
                 
                 results["metrics"]["total_null_count"] = total_nulls
-                results["metrics"]["null_percentage"] = (total_nulls / (row_count * col_count)) * 100
+                results["metrics"]["null_percentage"] = (total_nulls / (row_count * col_count)) * 100 if (row_count * col_count) > 0 else 0
                 
             except Exception as e:
                 logger.warning(f"PyDeequ profiling failed, using basic checks: {str(e)}")
-                # Fallback to basic null count
+                # Fallback to basic null count (skip isnan for non-numeric types)
                 from pyspark.sql.functions import col, isnan, isnull, when, count
-                null_counts = df.select(
-                    [count(when(col(c).isNull() | isnan(c), c)).alias(c) for c in df.columns]
-                ).collect()[0]
+                from pyspark.sql.types import DateType, TimestampType, StringType
+                
+                # Get column types
+                schema = df.schema
+                column_checks = []
+                for field in schema:
+                    col_name = field.name
+                    col_type = field.dataType
+                    # Only use isnan for numeric types, not for DATE, TIMESTAMP, or STRING
+                    if isinstance(col_type, (DateType, TimestampType, StringType)):
+                        column_checks.append(count(when(col(col_name).isNull(), col(col_name))).alias(col_name))
+                    else:
+                        # For numeric types, check both null and nan
+                        column_checks.append(count(when(col(col_name).isNull() | isnan(col(col_name)), col(col_name))).alias(col_name))
+                
+                null_counts = df.select(column_checks).collect()[0]
                 total_nulls = sum(null_counts)
                 results["metrics"]["total_null_count"] = total_nulls
                 results["metrics"]["null_percentage"] = (total_nulls / (row_count * col_count)) * 100
@@ -129,7 +167,7 @@ class MedallionDataQuality:
     def validate_silver_layer(
         self,
         df,
-        year: int,
+        year: Optional[int] = None,
         additional_checks: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -138,13 +176,16 @@ class MedallionDataQuality:
         
         Args:
             df: Spark DataFrame
-            year: Year of the dataset
+            year: Optional year of the dataset. If None, validates consolidated (multi-year) data.
             additional_checks: Optional dictionary with custom validation rules
         
         Returns:
             Dictionary with validation results
         """
-        logger.info(f"Validating silver layer for year {year}")
+        if year is None:
+            logger.info("Validating silver layer (consolidated data - all years)")
+        else:
+            logger.info(f"Validating silver layer for year {year}")
         
         results = {
             "layer": "silver",
@@ -179,15 +220,26 @@ class MedallionDataQuality:
                         f"Found {duplicate_count} duplicate rows ({duplicate_pct:.1f}%)"
                     )
             
-            # Validate year consistency
+            # Validate year consistency (only if a specific year is provided)
             if "ano do exercício" in df.columns:
                 from pyspark.sql.functions import collect_set
                 years = df.select(collect_set("ano do exercício")).collect()[0][0]
-                if len(years) > 1 or (years and years[0] != year):
-                    results["errors"].append(
-                        f"Year mismatch: expected {year}, found {years}"
-                    )
-                    results["passed"] = False
+                
+                if year is not None:
+                    # Single-year validation: should match the specified year
+                    if len(years) > 1 or (years and years[0] != year):
+                        results["errors"].append(
+                            f"Year mismatch: expected {year}, found {years}"
+                        )
+                        results["passed"] = False
+                else:
+                    # Consolidated data validation: should have multiple years
+                    if years:
+                        results["metrics"]["years_in_data"] = sorted(years)
+                        results["metrics"]["year_count"] = len(years)
+                        logger.info(f"Silver layer contains data from {len(years)} year(s): {sorted(years)}")
+                    else:
+                        results["warnings"].append("No year data found in 'ano do exercício' column")
             
             # Validate CEP format (should be numeric, 8 digits)
             if "CEP" in df.columns:
@@ -266,12 +318,24 @@ class MedallionDataQuality:
             results["metrics"]["row_count"] = row_count
             results["metrics"]["column_count"] = col_count
             
-            # Check for null values in key columns
+            # Check for null values in key columns (skip isnan for non-numeric types)
             from pyspark.sql.functions import col, count, when, isnan, isnull
+            from pyspark.sql.types import DateType, TimestampType, StringType
             
-            null_counts = df.select(
-                [count(when(col(c).isNull() | isnan(c), c)).alias(c) for c in df.columns]
-            ).collect()[0]
+            # Get column types
+            schema = df.schema
+            column_checks = []
+            for field in schema:
+                col_name = field.name
+                col_type = field.dataType
+                # Only use isnan for numeric types, not for DATE, TIMESTAMP, or STRING
+                if isinstance(col_type, (DateType, TimestampType, StringType)):
+                    column_checks.append(count(when(col(col_name).isNull(), col(col_name))).alias(col_name))
+                else:
+                    # For numeric types, check both null and nan
+                    column_checks.append(count(when(col(col_name).isNull() | isnan(col(col_name)), col(col_name))).alias(col_name))
+            
+            null_counts = df.select(column_checks).collect()[0]
             
             for col_name, null_count in null_counts.asDict().items():
                 if null_count > 0:

@@ -393,10 +393,10 @@ class MedallionPipeline:
         logger.info("=" * 80)
         logger.info("Starting Medallion Architecture Pipeline")
         logger.info("=" * 80)
-        logger.info(f"Raw data source: {DATA_DIR}")
-        logger.info(f"Bronze layer: {BRONZE_DIR}")
-        logger.info(f"Silver layer: {SILVER_DIR}")
-        logger.info(f"Gold layer: {GOLD_DIR}")
+        logger.info(f"Raw layer (catalog): {settings.RAW_DIR}")
+        logger.info(f"Bronze layer (cleaned): {BRONZE_DIR}")
+        logger.info(f"Silver layer (consolidated): {SILVER_DIR}")
+        logger.info(f"Gold layer (refined/analysis/plots): {GOLD_DIR}")
         
         # Bronze layer: Clean and catalog raw data
         bronze_dfs = self.ingest_to_bronze(years=years, incremental=incremental)
