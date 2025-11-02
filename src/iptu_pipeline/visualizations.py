@@ -60,8 +60,8 @@ class IPTUVizualizer:
             # Only warn if analysis directory exists (analysis was run but file missing)
             # If directory doesn't exist, analysis was likely skipped (e.g., PySpark mode)
             if self.analysis_path.exists() and (self.analysis_path / analysis_type).exists():
-            logger.warning(f"File not found: {file_path}")
-            return pd.DataFrame()
+                logger.warning(f"File not found: {file_path}")
+                return pd.DataFrame()
         return pd.read_csv(file_path)
     
     def plot_volume_by_year(self, save: bool = True) -> Optional[plt.Figure]:

@@ -144,10 +144,12 @@ class IPTUPipeline:
                 raw_catalog.save_catalog()
                 continue
             
-            # Bronze layer cleaning: normalize, handle missing columns, standardize types
+            # Bronze layer cleaning: normalize, handle missing columns, standardize types, trim strings
             df = self.transformer.normalize_column_names(df, year)
             df, _ = self.transformer.handle_missing_columns(df, year)
             df = self.transformer.standardize_data_types(df, year)
+            # Trim whitespace from strings and optimize categorical columns (must happen before validation)
+            df = self.transformer.clean_and_optimize(df)
             
             # Add bronze layer metadata
             if self.engine.engine_type == "pyspark":

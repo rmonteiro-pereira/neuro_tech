@@ -360,19 +360,25 @@ class DataQualityValidator:
             result["metrics"]["invalid_cep_count"] = int(invalid_cep)
         
         # Validate city (should be Recife)
+        # Note: Trim whitespace for comparison (whitespace will be trimmed in bronze layer)
         if "cidade" in df.columns:
-            cities = df["cidade"].unique()
-            if len(cities) > 1 or "RECIFE" not in [c.upper() for c in cities]:
+            cities_raw = df["cidade"].unique()
+            # Normalize by trimming and uppercasing for comparison
+            cities_normalized = [str(c).strip().upper() if pd.notna(c) else str(c) for c in cities_raw]
+            if len([c for c in cities_normalized if c != "NAN" and c != "NONE"]) > 1 or "RECIFE" not in cities_normalized:
                 result["warnings"].append(
-                    f"Unexpected city values: {cities}"
+                    f"Unexpected city values (before trimming): {list(cities_raw)}"
                 )
         
         # Validate estado (should be PE)
+        # Note: Trim whitespace for comparison (whitespace will be trimmed in bronze layer)
         if "estado" in df.columns:
-            estados = df["estado"].unique()
-            if len(estados) > 1 or "PE" not in estados:
+            estados_raw = df["estado"].unique()
+            # Normalize by trimming for comparison
+            estados_normalized = [str(e).strip() if pd.notna(e) else str(e) for e in estados_raw]
+            if len([e for e in estados_normalized if e != "NAN" and e != "NONE"]) > 1 or "PE" not in estados_normalized:
                 result["warnings"].append(
-                    f"Unexpected estado values: {estados}"
+                    f"Unexpected estado values (before trimming): {list(estados_raw)}"
                 )
         
         return result
