@@ -6,7 +6,18 @@ This DAG orchestrates the complete data processing workflow using:
 - Silver Layer: Consolidated and transformed data
 - Gold Layer: Refined business-ready outputs, analyses, and plots
 """
+import sys
+from pathlib import Path
 from datetime import datetime, timedelta
+
+# Add src directory to Python path for container environment
+# In container, src is mounted at /opt/airflow/src
+src_path = Path('/opt/airflow/src')
+if not src_path.exists():
+    # Fallback for local development
+    src_path = Path(__file__).parent.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 try:
     from airflow import DAG
@@ -115,8 +126,7 @@ def generate_dashboard(**context):
         if engine.engine_type == "pyspark":
             df = engine.read_parquet(SILVER_DIR / "iptu_silver_consolidated")
             # Convert to Pandas for dashboard (dashboard currently only supports Pandas)
-            # Use engine's to_pandas method which handles DateType conversion
-            df = engine.to_pandas(df)
+            df = df.toPandas()
         else:
             # Try to load from silver layer
             silver_path = SILVER_DIR / "iptu_silver_consolidated"
