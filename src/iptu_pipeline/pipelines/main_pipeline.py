@@ -159,7 +159,7 @@ class IPTUPipeline:
                 df = df.withColumn("_source_file", lit(str(file_path) if file_path else ""))
                 df = df.withColumn("_year_partition", lit(year))
                 df = df.withColumn("_data_layer", lit("bronze"))
-                else:
+            else:
                 import pandas as pd
                 file_path = settings.data_paths.get(year)
                 df["_bronze_ingestion_timestamp"] = pd.Timestamp.now()

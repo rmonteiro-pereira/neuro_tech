@@ -229,12 +229,15 @@ class IPTUVizualizer:
         
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
         
+        # Check which column name exists (analysis saves as "ano", not "ano do exercício")
+        ano_col = "ano" if "ano" in df.columns else "ano do exercício"
+        
         # Tax value trends
-        ax1.plot(df["ano do exercício"], df["media"], marker='o', linewidth=2, 
+        ax1.plot(df[ano_col], df["media"], marker='o', linewidth=2, 
                 markersize=8, label='Média', color='steelblue')
-        ax1.plot(df["ano do exercício"], df["mediana"], marker='s', linewidth=2, 
+        ax1.plot(df[ano_col], df["mediana"], marker='s', linewidth=2, 
                 markersize=8, label='Mediana', color='coral', linestyle='--')
-        ax1.fill_between(df["ano do exercício"], df["minimo"], df["maximo"], 
+        ax1.fill_between(df[ano_col], df["minimo"], df["maximo"], 
                          alpha=0.2, label='Min-Max', color='lightblue')
         ax1.set_xlabel("Ano", fontsize=12, fontweight='bold')
         ax1.set_ylabel("Valor IPTU (R$)", fontsize=12, fontweight='bold')
@@ -244,7 +247,7 @@ class IPTUVizualizer:
         ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
         
         # Total tax by year
-        bars = ax2.bar(df["ano do exercício"], df["total"], color='mediumseagreen', alpha=0.7)
+        bars = ax2.bar(df[ano_col], df["total"], color='mediumseagreen', alpha=0.7)
         ax2.set_xlabel("Ano", fontsize=12, fontweight='bold')
         ax2.set_ylabel("Total Arrecadado (R$)", fontsize=12, fontweight='bold')
         ax2.set_title("Total de IPTU Arrecadado por Ano", fontsize=14, fontweight='bold', pad=20)
