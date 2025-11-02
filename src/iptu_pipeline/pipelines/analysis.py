@@ -394,6 +394,7 @@ class IPTUAnalyzer:
                     ('total', 'sum'),
                     ('count', 'count')
                 ]).reset_index()
+                tax_stats_by_year = tax_stats_by_year.rename(columns={"ano do exercício": "ano"})
                 
                 results["tax_stats_by_year"] = tax_stats_by_year
                 
@@ -427,6 +428,7 @@ class IPTUAnalyzer:
                     ('total', 'sum'),
                     ('count', 'count')
                 ]).reset_index()
+                property_value_by_year = property_value_by_year.rename(columns={"ano do exercício": "ano"})
                 
                 results["property_value_by_year"] = property_value_by_year
         
@@ -477,7 +479,22 @@ class IPTUAnalyzer:
                 
                 if self.is_spark and hasattr(result_df, 'toPandas'):
                     # Convert PySpark DataFrame to Pandas for CSV export
+                    # Handle DateType columns (PySpark DateType cannot be directly converted to Pandas)
                     try:
+                        from pyspark.sql.types import DateType
+                        from pyspark.sql import functions as F
+                        
+                        # Check for DateType columns and convert them to TimestampType
+                        date_columns = [
+                            field.name for field in result_df.schema.fields 
+                            if isinstance(field.dataType, DateType)
+                        ]
+                        
+                        if date_columns:
+                            logger.debug(f"Converting DateType columns to TimestampType: {date_columns}")
+                            for col_name in date_columns:
+                                result_df = result_df.withColumn(col_name, F.to_timestamp(F.col(col_name)))
+                        
                         pandas_df = result_df.toPandas()
                         pandas_df.to_csv(file_path, index=False)
                         logger.info(f"  Saved: {file_path} ({len(pandas_df)} rows)")

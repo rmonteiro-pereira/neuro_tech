@@ -276,10 +276,36 @@ class DataEngine:
             df.to_parquet(file_path, **kwargs)
     
     def to_pandas(self, df: Union[pd.DataFrame, SparkDataFrame]) -> pd.DataFrame:
-        """Convert to Pandas DataFrame."""
+        """
+        Convert to Pandas DataFrame.
+        
+        Note: PySpark DateType cannot be directly converted to Pandas.
+        DateType columns are automatically converted to TimestampType before conversion.
+        """
         if self.engine_type == "pyspark":
             if isinstance(df, SparkDataFrame):
-                return df.toPandas()
+                # PySpark DateType cannot be directly converted to Pandas
+                # Convert DateType columns to TimestampType before toPandas()
+                try:
+                    from pyspark.sql.types import DateType
+                    from pyspark.sql import functions as F
+                    
+                    # Check for DateType columns and convert them to TimestampType
+                    date_columns = [
+                        field.name for field in df.schema.fields 
+                        if isinstance(field.dataType, DateType)
+                    ]
+                    
+                    if date_columns:
+                        logger.debug(f"Converting DateType columns to TimestampType for Pandas conversion: {date_columns}")
+                        for col_name in date_columns:
+                            # Convert DateType to TimestampType (date becomes timestamp at midnight)
+                            df = df.withColumn(col_name, F.to_timestamp(F.col(col_name)))
+                    
+                    return df.toPandas()
+                except Exception as e:
+                    logger.warning(f"Error converting DateType columns: {e}, attempting direct conversion")
+                    return df.toPandas()
             return df
         else:
             return df
