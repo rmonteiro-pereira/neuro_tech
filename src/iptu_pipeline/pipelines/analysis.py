@@ -754,12 +754,14 @@ class IPTUAnalyzer:
             years_df = df_analysis.select("ano do exercício").distinct().orderBy("ano do exercício")
             years = [row["ano do exercício"] for row in years_df.collect()]
             
-            if len(years) < 2:
-                logger.warning("Need at least 2 years for evolution analysis")
+            # Filter to 2020-2023 only (exclude 2024 if present)
+            years_filtered = [y for y in years if 2020 <= y <= 2023]
+            if len(years_filtered) < 2:
+                logger.warning("Need at least 2 years in range 2020-2023 for evolution analysis")
                 return results
             
-            first_year = years[0]
-            last_year = years[-1]
+            first_year = years_filtered[0]  # Should be 2020
+            last_year = years_filtered[-1]   # Should be 2023
             
             # Count and average value by neighborhood and year
             neighborhood_year_stats = df_analysis.groupBy("bairro", "ano do exercício").agg(
@@ -823,8 +825,14 @@ class IPTUAnalyzer:
                 logger.warning("Need at least 2 years for evolution analysis")
                 return results
             
-            first_year = years[0]
-            last_year = years[-1]
+            # Filter to 2020-2023 only (exclude 2024 if present)
+            years_filtered = [y for y in years if 2020 <= y <= 2023]
+            if len(years_filtered) < 2:
+                logger.warning("Need at least 2 years in range 2020-2023 for evolution analysis")
+                return results
+            
+            first_year = years_filtered[0]  # Should be 2020
+            last_year = years_filtered[-1]   # Should be 2023
             
             # Stats by neighborhood and year
             neighborhood_year_stats = df_analysis.groupby(["bairro", "ano do exercício"]).agg({
