@@ -280,24 +280,72 @@ class IPTUPipeline:
             logger.error(f"   This suggests data duplication during concatenation!")
             # Don't fail, but log the issue
         
-        # Check for UUID column names in consolidated result
+        # Validate column names BEFORE saving - CRITICAL: Silver layer MUST have correct column names
         if self.engine.engine_type == "pandas":
+            # Check for UUID column names - this is a CRITICAL error, must fail
             uuid_cols = [col for col in consolidated_df.columns if str(col).startswith('col-') and len(str(col)) > 40]
             if uuid_cols:
-                logger.error(f"⚠️  UUID column names detected in consolidated DataFrame: {len(uuid_cols)} columns")
+                logger.error(f"❌ CRITICAL ERROR: UUID column names detected in consolidated DataFrame: {len(uuid_cols)} columns")
                 logger.error(f"   Sample UUID columns: {uuid_cols[:5]}")
                 logger.error(f"   This indicates a concatenation schema alignment issue!")
-                
+                logger.error(f"   Column names MUST be preserved correctly in silver layer.")
+                raise ValueError(
+                    f"Silver layer consolidation failed: {len(uuid_cols)} columns have corrupted UUID names. "
+                    f"This indicates a problem during DataFrame concatenation. "
+                    f"Sample corrupted columns: {uuid_cols[:5]}"
+                )
+            
             # Check for duplicate columns
             if consolidated_df.columns.duplicated().any():
                 dup_cols = consolidated_df.columns[consolidated_df.columns.duplicated()].unique()
                 logger.error(f"⚠️  Duplicate columns in consolidated DataFrame: {dup_cols.tolist()}")
                 raise ValueError(f"Duplicate columns after consolidation: {dup_cols.tolist()}")
+            
+            # Validate that expected columns exist (at least some key ones)
+            expected_cols = ["valor IPTU", "ano do exercício", "bairro"]
+            missing_cols = [col for col in expected_cols if col not in consolidated_df.columns]
+            if missing_cols:
+                logger.error(f"❌ CRITICAL ERROR: Required columns missing from consolidated DataFrame: {missing_cols}")
+                logger.error(f"   Available columns: {list(consolidated_df.columns[:20])}")
+                raise ValueError(
+                    f"Silver layer consolidation failed: Required columns missing: {missing_cols}. "
+                    f"This indicates a schema alignment problem during concatenation."
+                )
+            
+            # Log column count for validation
+            logger.info(f"✅ Column validation passed: {len(consolidated_df.columns)} columns with correct names")
+            logger.debug(f"   Sample columns: {list(consolidated_df.columns[:10])}")
         
         # Save consolidated silver layer
         silver_path = SILVER_DIR / "iptu_silver_consolidated"
+        
+        # Double-check column names right before saving (extra safety)
+        if self.engine.engine_type == "pandas":
+            col_names_before_save = list(consolidated_df.columns)
+            # Verify no UUID columns slipped through
+            uuid_check = [col for col in col_names_before_save if str(col).startswith('col-') and len(str(col)) > 40]
+            if uuid_check:
+                raise ValueError(f"UUID columns detected immediately before save: {uuid_check[:5]}. Aborting save to prevent corruption.")
+        
         self._save_to_silver(consolidated_df, silver_path)
         logger.info(f"[OK] Silver layer saved to: {silver_path}")
+        
+        # Verify saved file has correct columns (read back and validate)
+        if self.engine.engine_type == "pandas":
+            try:
+                import pandas as pd
+                saved_file = silver_path / "data.parquet" if not silver_path.suffix == ".parquet" else silver_path
+                if saved_file.exists():
+                    verify_df = pd.read_parquet(saved_file, engine='pyarrow')
+                    verify_cols = list(verify_df.columns)
+                    uuid_verify = [col for col in verify_cols if str(col).startswith('col-') and len(str(col)) > 40]
+                    if uuid_verify:
+                        logger.error(f"❌ CRITICAL: Saved file has UUID columns! This indicates a save/read issue.")
+                        raise ValueError(f"Silver layer file corruption detected: {len(uuid_verify)} UUID columns in saved file")
+                    logger.info(f"✅ Verification passed: Saved file has {len(verify_cols)} correct column names")
+            except Exception as e:
+                logger.warning(f"Could not verify saved file: {e}")
+                # Don't fail on verification errors, but log them
         
         # Validate silver layer with PyDeequ (if available)
         if self.medallion_quality:
