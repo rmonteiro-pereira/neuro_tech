@@ -267,11 +267,45 @@ class DataTransformer:
             
             # Step 1: Trim whitespace from all string/object columns
             logger.info("Trimming whitespace from string columns")
-            string_columns = df_clean.select_dtypes(include=['object']).columns.tolist()
+            # Get object and categorical columns (both may contain strings)
+            object_columns = df_clean.select_dtypes(include=['object', 'category']).columns.tolist()
             
-            for col_name in string_columns:
-                # Trim whitespace (str.strip() preserves NaN values as NaN)
-                df_clean[col_name] = df_clean[col_name].str.strip()
+            # Filter to only columns that actually contain string data
+            string_columns = []
+            for col_name in object_columns:
+                try:
+                    # Check if column supports string operations
+                    test_series = df_clean[col_name]
+                    original_dtype = test_series.dtype.name
+                    
+                    # Convert categorical to string for testing
+                    if original_dtype == 'category':
+                        test_series = test_series.astype(str)
+                    
+                    # Test on a sample to avoid processing entire large column
+                    sample = test_series.dropna().head(100)
+                    if len(sample) > 0:
+                        # Try to use .str accessor on a sample
+                        test_result = sample.str.strip()
+                        string_columns.append((col_name, original_dtype))
+                except (AttributeError, TypeError):
+                    # Column is not string type, skip it
+                    continue
+            
+            for col_name, original_dtype in string_columns:
+                # Handle categorical columns: convert to string, trim, then convert back
+                if original_dtype == 'category':
+                    # Convert categorical to string, trim, then back to category
+                    df_clean[col_name] = df_clean[col_name].astype(str).str.strip().astype('category')
+                else:
+                    # For object columns, ensure they're string-like before trimming
+                    # Use try-except to handle edge cases with mixed types
+                    try:
+                        df_clean[col_name] = df_clean[col_name].str.strip()
+                    except (AttributeError, TypeError):
+                        # Column contains non-string data, skip trimming but log it
+                        logger.debug(f"Skipping whitespace trimming for column {col_name} (non-string data detected)")
+                        continue
             
             if string_columns:
                 logger.info(f"Trimmed {len(string_columns)} string columns")
