@@ -80,7 +80,7 @@ class IPTUDashboard:
                 df_type.head(10),
                 values="total_imoveis",
                 names="tipo_uso",
-                title="Distribuição de Imóveis por Tipo de Uso (Top 10)",
+                title="Distribuição de Imóveis por Tipo de Uso",
                 hole=0.4
             )
             figs.append(("volume_by_type", fig))
@@ -119,7 +119,7 @@ class IPTUDashboard:
             
             fig.update_layout(
                 barmode='stack',
-                title="Volume de Imóveis por Ano e Tipo de Uso (Top 10 Tipos)",
+                title="Volume de Imóveis por Ano e Tipo de Uso",
                 xaxis_title="Ano",
                 yaxis_title="Total de Imóveis"
             )

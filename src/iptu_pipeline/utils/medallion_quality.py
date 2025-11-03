@@ -44,7 +44,7 @@ class MedallionDataQuality:
         Returns:
             Dictionary with validation results
         """
-        logger.info(f"Validating bronze layer for year {year}")
+        logger.info(f"[PyDeequ] Starting data quality validation for year {year} - Bronze Layer")
         
         results = {
             "layer": "bronze",
@@ -123,6 +123,13 @@ class MedallionDataQuality:
                 results["metrics"]["total_null_count"] = total_nulls
                 results["metrics"]["null_percentage"] = (total_nulls / (row_count * col_count)) * 100 if (row_count * col_count) > 0 else 0
                 
+                # Log PyDeequ profiling success with metrics
+                null_pct = results["metrics"]["null_percentage"]
+                logger.info(
+                    f"[PyDeequ] Profiling completed successfully for year {year} - Bronze Layer "
+                    f"(Rows: {row_count:,}, Columns: {col_count}, Null%: {null_pct:.2f}%)"
+                )
+                
             except Exception as e:
                 logger.warning(f"PyDeequ profiling failed, using basic checks: {str(e)}")
                 # Fallback to basic null count (skip isnan for non-numeric types)
@@ -157,9 +164,25 @@ class MedallionDataQuality:
                             )
             
         except Exception as e:
-            logger.error(f"Bronze layer validation failed: {str(e)}")
+            logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED for year {year} - Bronze Layer: {str(e)}")
             results["errors"].append(f"Validation error: {str(e)}")
             results["passed"] = False
+        
+        # Final pass/fail message before returning
+        if results["passed"]:
+            row_count = results["metrics"].get("row_count", 0)
+            col_count = results["metrics"].get("column_count", 0)
+            null_pct = results["metrics"].get("null_percentage", 0)
+            error_count = len(results["errors"])
+            logger.info(
+                f"[PASS] PyDeequ Data Quality Validation PASSED for year {year} - Bronze Layer "
+                f"(Rows: {row_count:,}, Columns: {col_count}, Null%: {null_pct:.2f}%, Errors: {error_count})"
+            )
+        else:
+            error_count = len(results["errors"])
+            logger.error(
+                f"[FAIL] PyDeequ Data Quality Validation FAILED for year {year} - Bronze Layer: {error_count} errors"
+            )
         
         self.validation_results.append(results)
         return results
@@ -183,9 +206,9 @@ class MedallionDataQuality:
             Dictionary with validation results
         """
         if year is None:
-            logger.info("Validating silver layer (consolidated data - all years)")
+            logger.info("[PyDeequ] Starting data quality validation - Silver Layer (Consolidated)")
         else:
-            logger.info(f"Validating silver layer for year {year}")
+            logger.info(f"[PyDeequ] Starting data quality validation for year {year} - Silver Layer")
         
         results = {
             "layer": "silver",
@@ -278,9 +301,36 @@ class MedallionDataQuality:
                         results["warnings"].append(f"Custom check '{check_name}' failed: {str(e)}")
             
         except Exception as e:
-            logger.error(f"Silver layer validation failed: {str(e)}")
+            if year is None:
+                logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED - Silver Layer (Consolidated): {str(e)}")
+            else:
+                logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED for year {year} - Silver Layer: {str(e)}")
             results["errors"].append(f"Validation error: {str(e)}")
             results["passed"] = False
+        
+        # Final pass/fail message before returning
+        if results["passed"]:
+            row_count = results["metrics"].get("row_count", 0)
+            col_count = results["metrics"].get("column_count", 0)
+            duplicate_pct = results["metrics"].get("duplicate_percentage", 0)
+            error_count = len(results["errors"])
+            
+            if year is None:
+                logger.info(
+                    f"[PASS] PyDeequ Data Quality Validation PASSED - Silver Layer (Consolidated) "
+                    f"(Rows: {row_count:,}, Columns: {col_count}, Duplicate%: {duplicate_pct:.2f}%, Errors: {error_count})"
+                )
+            else:
+                logger.info(
+                    f"[PASS] PyDeequ Data Quality Validation PASSED for year {year} - Silver Layer "
+                    f"(Rows: {row_count:,}, Columns: {col_count}, Duplicate%: {duplicate_pct:.2f}%, Errors: {error_count})"
+                )
+        else:
+            error_count = len(results["errors"])
+            if year is None:
+                logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED - Silver Layer (Consolidated): {error_count} errors")
+            else:
+                logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED for year {year} - Silver Layer: {error_count} errors")
         
         self.validation_results.append(results)
         return results
@@ -300,7 +350,7 @@ class MedallionDataQuality:
         Returns:
             Dictionary with validation results
         """
-        logger.info(f"Validating {layer_name} layer")
+        logger.info(f"[PyDeequ] Starting data quality validation - Gold Layer ({layer_name})")
         
         results = {
             "layer": layer_name,
@@ -355,9 +405,23 @@ class MedallionDataQuality:
                 results["passed"] = False
             
         except Exception as e:
-            logger.error(f"{layer_name} layer validation failed: {str(e)}")
+            logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED - Gold Layer ({layer_name}): {str(e)}")
             results["errors"].append(f"Validation error: {str(e)}")
             results["passed"] = False
+        
+        # Final pass/fail message before returning
+        if results["passed"]:
+            row_count = results["metrics"].get("row_count", 0)
+            col_count = results["metrics"].get("column_count", 0)
+            duplicate_count = results["metrics"].get("duplicate_count", 0)
+            error_count = len(results["errors"])
+            logger.info(
+                f"[PASS] PyDeequ Data Quality Validation PASSED - Gold Layer ({layer_name}) "
+                f"(Rows: {row_count:,}, Columns: {col_count}, Duplicates: {duplicate_count}, Errors: {error_count})"
+            )
+        else:
+            error_count = len(results["errors"])
+            logger.error(f"[FAIL] PyDeequ Data Quality Validation FAILED - Gold Layer ({layer_name}): {error_count} errors")
         
         self.validation_results.append(results)
         return results

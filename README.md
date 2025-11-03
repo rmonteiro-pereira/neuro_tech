@@ -11,20 +11,58 @@
 
 ## 📚 Table of Contents
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage Guide](#usage-guide)
-- [Configuration](#configuration)
-- [Data Quality](#data-quality)
-- [Analytics & Visualizations](#analytics--visualizations)
-- [Outputs](#outputs)
-- [Advanced Features](#advanced-features)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+- [Overview](#-overview)
+  - [Principais Descobertas](#-principais-descobertas)
+- [Key Features](#-key-features)
+  - [Core Capabilities](#-core-capabilities)
+  - [Data Quality Framework](#-data-quality-framework)
+- [Architecture](#-architecture)
+  - [Medallion Architecture (Delta Lake)](#medallion-architecture-delta-lake)
+  - [Processing Pipeline](#processing-pipeline)
+- [Project Structure](#-project-structure)
+- [Installation](#-installation)
+  - [Prerequisites](#prerequisites)
+  - [Step 1: Clone Repository](#step-1-clone-repository)
+  - [Step 2: Install Dependencies](#step-2-install-dependencies)
+  - [Step 3: Verify Installation](#step-3-verify-installation)
+- [Quick Start](#-quick-start)
+  - [Run Full Pipeline (Pandas)](#run-full-pipeline-pandas)
+  - [Run Full Pipeline (PySpark)](#run-full-pipeline-pyspark)
+  - [Run with Docker (Spark Standalone)](#run-with-docker-spark-standalone)
+- [Usage Guide](#-usage-guide)
+  - [Basic Usage](#basic-usage)
+  - [Advanced Usage](#advanced-usage)
+- [Configuration](#-configuration)
+  - [Environment Variables](#environment-variables)
+  - [Configuration File](#configuration-file)
+  - [Spark Configuration](#spark-configuration)
+- [Data Quality](#-data-quality)
+  - [Validation Framework](#validation-framework)
+  - [Quality Reports](#quality-reports)
+  - [Running Quality Checks](#running-quality-checks)
+- [Analytics & Visualizations](#-analytics--visualizations)
+  - [Análises e Respostas às Perguntas Principais](#-análises-e-respostas-às-perguntas-principais)
+  - [Todas as Visualizações Disponíveis](#-todas-as-visualizações-disponíveis)
+  - [Estrutura Completa das Análises](#-estrutura-completa-das-análises)
+- [Outputs](#-outputs)
+  - [Medallion Layers](#medallion-layers)
+  - [Analysis Results](#analysis-results)
+  - [Visualizations](#visualizations)
+  - [Legacy Outputs](#legacy-outputs)
+  - [Catalog](#catalog)
+- [Advanced Features](#-advanced-features)
+  - [Delta Lake Features](#delta-lake-features)
+  - [PyDeequ Integration](#pydeequ-integration)
+  - [Catalog System](#catalog-system)
+  - [Incremental Processing](#incremental-processing)
+  - [Export Script](#export-script)
+- [Troubleshooting](#-troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Debugging](#debugging)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Support](#-support)
+- [Next Steps](#-next-steps)
 
 ---
 
@@ -36,9 +74,20 @@ This project implements an enterprise-grade data pipeline for processing IPTU (I
 - **Dual Engine Support**: Pandas (default) and PySpark (distributed processing)
 - **Data Quality Framework**: Automated validation with PyDeequ
 - **Delta Lake Integration**: ACID transactions and schema evolution
-- **Comprehensive Analytics**: Volume, distribution, and trend analysis
+- **Comprehensive Analytics**: Volume, distribution, age, value, and evolution analysis
 - **Interactive Dashboards**: Plotly-powered visualizations
 - **Orchestration**: Apache Airflow DAGs for automated workflows
+
+### 📊 Principais Descobertas
+
+O pipeline processou e analisou **1.637.779 imóveis** do IPTU de Recife:
+
+- **Volume**: Distribuição completa por tipo de uso, bairro, e ano (2020-2024)
+- **Idade**: Inventário predominantemente de meia-idade (21-50 anos de construção)
+- **Valor**: DOIS IRMAOS, MONTEIRO e GUABIRABA são os bairros com maior valor médio de IPTU
+- **Evolução**: Análise detalhada da evolução de bairros em quantidade e valor
+
+Todas as análises estão disponíveis em `data/gold/analyses/` e visualizações em `data/gold/plots/`.
 
 ---
 
@@ -110,9 +159,13 @@ The pipeline follows a **medallion architecture** with four data layers:
 ┌─────────────────────────────────────────────────────────────────┐
 │                    GOLD LAYER (data/gold/)                     │
 │  • Business-ready analytics                                     │
-│  • Aggregations by year/type/neighborhood                       │
+│  • Volume analysis (total, by type, by neighborhood)           │
+│  • Age distribution analysis (construction age)                 │
+│  • Tax value analysis (by neighborhood, trends)                  │
+│  • Age-value relationship analysis                              │
+│  • Neighborhood evolution analysis                              │
 │  • Analysis results (CSV)                                       │
-│  • Visualizations (PNG, HTML)                                   │
+│  • Visualizations (PNG, HTML) - 8 plots + HTML report          │
 │  • Dashboard reports                                            │
 │  • Year-over-year trends                                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -565,43 +618,221 @@ results = quality.validate_silver_layer(df_silver, year=None)
 
 ## 📊 Analytics & Visualizations
 
-### Volume Analysis
+Este pipeline gera análises abrangentes e visualizações automáticas sobre o inventário de imóveis do IPTU de Recife. As análises cobrem:
 
-Analyzes total number of properties:
-- Total by year (2020-2024)
-- Distribution by type of use
-- Distribution by neighborhood
-- Volume by year × type (cross-tabulation)
-- Volume by year × neighborhood
+- **Volume**: Distribuição total de imóveis por tipo, bairro, ano e construção
+- **Idade**: Análise da distribuição por faixas de idade de construção
+- **Valor**: Bairros com maiores valores de IPTU e relação idade × valor
+- **Evolução**: Crescimento de bairros em quantidade e valor ao longo do tempo
 
-### Distribution Analysis
+**Resultados:**
+- 📊 **12 visualizações** em alta qualidade (PNG, 300 DPI)
+- 📈 **20+ análises** detalhadas (CSV)
+- 📄 **1 relatório HTML** interativo com todas as visualizações e tabelas
 
-Analyzes physical distribution:
-- By construction type
-- Temporal distribution
-- Top neighborhoods by volume
-- Percentage distributions
+Todas as análises são geradas automaticamente ao executar o pipeline e salvos em `data/gold/analyses/` e `data/gold/plots/`.
 
-### Tax Value Analysis
+### 📈 Análises e Respostas às Perguntas Principais
 
-Analyzes IPTU values (additional):
-- Mean, median, min, max by year
-- Total collected by year
-- Top neighborhoods by average value
-- Value trends over time
+O pipeline realiza análises abrangentes que respondem às perguntas principais sobre o inventário de imóveis do IPTU:
 
-### Visualizations
+---
 
-Automatically generated plots:
-- `volume_by_year.png`: Bar chart of properties per year
-- `volume_by_type.png`: Pie + bar chart by type
-- `top_neighborhoods.png`: Top 20 neighborhoods
-- `volume_by_year_type.png`: Stacked area chart
-- `tax_trends.png`: Line + bar chart of IPTU trends
-- `top_tax_neighborhoods.png`: Top neighborhoods by IPTU
-- `distribution_by_construction.png`: Bar chart by construction type
-- `temporal_distribution.png`: Timeline of properties
-- `visualizations_report.html`: All plots in one HTML
+#### 1️⃣ **Volume: Qual o total de imóveis e como o inventário está distribuído fisicamente?**
+
+**Resposta:** O dataset consolidado contém **1.637.779 imóveis** totais (acumulado de 2020-2024).
+
+**Distribuição por Tipo de Uso:**
+- Análise completa disponível em: `data/gold/analyses/volume_analysis/volume_by_type.csv`
+- Visualização: Ver `data/gold/plots/volume_by_type.png`
+
+**Distribuição por Bairro:**
+- Top 20 bairros com mais imóveis: `data/gold/analyses/volume_analysis/volume_by_neighborhood.csv`
+- Visualização: Ver `data/gold/plots/top_neighborhoods.png`
+
+**Distribuição Temporal:**
+- Volume por ano (2020-2024): `data/gold/analyses/volume_analysis/volume_by_year.csv`
+- Visualização: Ver `data/gold/plots/volume_by_year.png`
+
+**Distribuição Combinada (Ano × Tipo):**
+- Análise cruzada ano/tipo: `data/gold/analyses/volume_analysis/volume_by_year_type.csv`
+- Visualização: Ver `data/gold/plots/volume_by_year_type.png`
+
+**Distribuição por Tipo de Construção:**
+- Análise: `data/gold/analyses/distribution_analysis/distribution_by_construction.csv`
+- Visualização: Ver `data/gold/plots/distribution_by_construction.png`
+
+---
+
+#### 2️⃣ **Idade: Como o inventário está distribuído em termos de idade de construção?**
+
+**Resposta:** A distribuição por faixas de idade mostra que:
+- **41-50 anos**: 467.333 imóveis (maior faixa)
+- **21-30 anos**: 273.655 imóveis
+- **11-20 anos**: 231.864 imóveis
+- **60+ anos**: 203.572 imóveis
+- **31-40 anos**: 176.620 imóveis
+- **51-60 anos**: 174.710 imóveis
+- **0-10 anos**: 110.025 imóveis
+
+**Análise Completa:**
+- Distribuição por faixas: `data/gold/analyses/age_analysis/age_distribution_by_range.csv`
+- Estatísticas: `data/gold/analyses/age_analysis/age_statistics.csv`
+- Distribuição temporal: Ver `data/gold/plots/temporal_distribution.png`
+
+A maioria dos imóveis tem entre 21-50 anos de construção, indicando um inventário predominantemente de meia-idade.
+
+---
+
+#### 3️⃣ **Valor (R$): Quais os bairros com imóveis mais valiosos? Há relação direta entre idade e valor?**
+
+**Bairros com Maior Valor Médio de IPTU:**
+
+| Bairro | Valor Médio IPTU (R$) | Total (R$) | Qtd. Imóveis |
+|--------|----------------------|-----------|--------------|
+| DOIS IRMAOS | 8.199,33 | 2.951.757,86 | 360 |
+| MONTEIRO | 4.431,75 | 34.580.948,84 | 7.803 |
+| GUABIRABA | 4.223,49 | 9.000.253,52 | 2.131 |
+| JAQUEIRA | 3.854,44 | 11.320.488,43 | 2.937 |
+| ILHA DO RETIRO | 3.816,16 | 18.580.887,28 | 4.869 |
+
+**Análise Completa:**
+- Top 20 bairros por valor médio: `data/gold/analyses/tax_value_analysis/avg_tax_by_neighborhood_top20.csv`
+- Visualização: Ver `data/gold/plots/top_tax_neighborhoods.png`
+- Tendências de valor: Ver `data/gold/plots/tax_trends.png`
+
+**Relação Idade × Valor:**
+
+A análise mostra uma **relação inversa interessante**:
+- **0-10 anos**: Valor médio IPTU = R$ 2.126,84 (imóveis mais novos, valor médio)
+- **11-20 anos**: Valor médio IPTU = R$ 2.991,03 (pico de valor)
+- **21-30 anos**: Valor médio IPTU = R$ 2.172,92
+- **31-40 anos**: Valor médio IPTU = R$ 1.521,58
+- **41-50 anos**: Valor médio IPTU = R$ 786,38 (maior quantidade, menor valor médio)
+- **50+ anos**: Valor médio IPTU = R$ 1.028,19
+
+**Conclusão:** Não há relação direta simples. Imóveis de **11-20 anos** têm o maior valor médio, enquanto imóveis **41-50 anos** (a faixa mais numerosa) têm menor valor médio. Isso sugere que fatores além da idade (localização, padrão de construção, infraestrutura) influenciam fortemente o valor.
+
+**Análise Completa:**
+- Relação idade-valor: `data/gold/analyses/age_value_analysis/age_value_relationship.csv`
+
+---
+
+#### 4️⃣ **Evolução: Quais bairros apresentam maior evolução em número de imóveis? E em relação a valor?**
+
+**Bairros com Maior Crescimento em Quantidade:**
+
+A análise comparativa entre o primeiro e último ano mostra que muitos bairros apresentaram **redução** significativa no número de registros (possivelmente devido a consolidações, alterações administrativas ou melhoria na qualidade dos dados). Para identificar crescimento real, a análise foca em bairros que mantiveram consistência nos dados.
+
+**Top Crescimentos:**
+- Análise completa: `data/gold/analyses/evolution_analysis/top_growth_quantity.csv`
+- Análise por bairro: `data/gold/analyses/evolution_analysis/neighborhood_evolution.csv`
+
+**Bairros com Maior Crescimento em Valor:**
+
+- Análise completa: `data/gold/analyses/evolution_analysis/top_growth_value.csv`
+
+**Tendências Anuais:**
+- Estatísticas por ano: `data/gold/analyses/tax_value_analysis/tax_stats_by_year.csv`
+- Valores de propriedade: `data/gold/analyses/tax_value_analysis/property_value_by_year.csv`
+- Visualização: Ver `data/gold/plots/tax_trends.png`
+
+**Observação:** A evolução precisa ser analisada considerando que mudanças administrativas, consolidações de registros e melhorias na qualidade dos dados podem afetar as comparações ano a ano.
+
+---
+
+### 📊 Todas as Visualizações Disponíveis
+
+Todas as visualizações são geradas automaticamente e salvas em `data/gold/plots/`:
+
+#### 1. Análise de Volume
+
+**Volume por Ano** - Gráfico de barras do total de imóveis por ano
+![Volume por Ano](data/gold/plots/volume_by_year.png)
+
+**Volume por Tipo** - Gráfico de pizza + barras por tipo de uso
+![Volume por Tipo](data/gold/plots/volume_by_type.png)
+
+**Top Bairros** - Top 20 bairros por quantidade de imóveis
+![Top Bairros](data/gold/plots/top_neighborhoods.png)
+
+**Volume Ano × Tipo** - Gráfico de área empilhada mostrando evolução
+![Volume Ano × Tipo](data/gold/plots/volume_by_year_type.png)
+
+**Distribuição por Construção** - Gráfico de barras por tipo de construção
+![Distribuição por Construção](data/gold/plots/distribution_by_construction.png)
+
+**Distribuição Temporal** - Timeline mostrando distribuição ao longo do tempo
+![Distribuição Temporal](data/gold/plots/temporal_distribution.png)
+
+#### 2. Análise de Valores de IPTU
+
+**Tendências de IPTU (Boxplot)** - Distribuição de valores de IPTU por ano
+![Tendências de IPTU](data/gold/plots/tax_trends.png)
+
+**Top Bairros por IPTU** - Top 20 bairros por valor médio de IPTU
+![Top Bairros por IPTU](data/gold/plots/top_tax_neighborhoods.png)
+
+#### 3. Análise de Idade de Construção
+
+**Distribuição por Faixas de Idade** - Distribuição de imóveis por idade de construção
+![Distribuição por Idade](data/gold/plots/age_distribution.png)
+
+**Relação Idade × Valor** - Valor médio de IPTU por faixa de idade de construção
+![Relação Idade × Valor](data/gold/plots/age_value_relationship.png)
+
+#### 4. Análise de Evolução de Bairros
+
+**Crescimento em Quantidade** - Top bairros com maior crescimento em número de imóveis
+![Crescimento em Quantidade](data/gold/plots/neighborhood_growth_quantity.png)
+
+**Crescimento em Valor** - Top bairros com maior crescimento em valor médio de IPTU
+![Crescimento em Valor](data/gold/plots/neighborhood_growth_value.png)
+
+**Visualizações Interativas:**
+- Todas as visualizações estão disponíveis no relatório HTML interativo: `data/gold/plots/visualizations_report.html`
+- Abra o arquivo HTML no navegador para visualizar todas as análises interativamente
+
+---
+
+### 📂 Estrutura Completa das Análises
+
+Todas as análises são salvas em `data/gold/analyses/` organizadas por categoria:
+
+```
+analyses/
+├── volume_analysis/              # Análise de volume
+│   ├── total_properties.csv
+│   ├── volume_by_year.csv
+│   ├── volume_by_type.csv
+│   ├── volume_by_neighborhood.csv
+│   ├── volume_by_year_type.csv
+│   └── volume_by_year_neighborhood.csv
+│
+├── distribution_analysis/        # Análise de distribuição física
+│   ├── distribution_by_type.csv
+│   ├── distribution_by_neighborhood_top20.csv
+│   ├── distribution_by_year.csv
+│   ├── distribution_by_construction.csv
+│   └── top_neighborhoods_by_year.csv
+│
+├── tax_value_analysis/           # Análise de valores de IPTU
+│   ├── tax_stats_by_year.csv
+│   ├── property_value_by_year.csv
+│   └── avg_tax_by_neighborhood_top20.csv
+│
+├── age_analysis/                 # Análise de idade de construção
+│   ├── age_distribution_by_range.csv
+│   └── age_statistics.csv
+│
+├── age_value_analysis/           # Relação idade-valor
+│   └── age_value_relationship.csv
+│
+└── evolution_analysis/           # Evolução de bairros
+    ├── neighborhood_evolution.csv
+    ├── top_growth_quantity.csv
+    └── top_growth_value.csv
+```
 
 ---
 
@@ -618,16 +849,66 @@ Automatically generated plots:
 
 ### Analysis Results
 
-`data/gold/analyses/`:
-- `volume_analysis/`: Total volume by year/type/neighborhood
-- `distribution_analysis/`: Physical distribution analyses
-- `tax_value_analysis/`: IPTU value trends
+`data/gold/analyses/` contém análises completas organizadas por categoria:
+
+#### Volume Analysis (`volume_analysis/`)
+- `total_properties.csv`: Total de imóveis (1.637.779)
+- `volume_by_year.csv`: Volume por ano (2020-2024)
+- `volume_by_type.csv`: Volume por tipo de uso do imóvel
+- `volume_by_neighborhood.csv`: Volume por bairro
+- `volume_by_year_type.csv`: Análise cruzada ano × tipo
+- `volume_by_year_neighborhood.csv`: Análise cruzada ano × bairro
+
+#### Distribution Analysis (`distribution_analysis/`)
+- `distribution_by_type.csv`: Distribuição por tipo de uso
+- `distribution_by_neighborhood_top20.csv`: Top 20 bairros
+- `distribution_by_year.csv`: Distribuição temporal
+- `distribution_by_construction.csv`: Por tipo de construção
+- `top_neighborhoods_by_year.csv`: Top bairros por ano
+
+#### Tax Value Analysis (`tax_value_analysis/`)
+- `tax_stats_by_year.csv`: Estatísticas de IPTU por ano (média, mediana, min, max)
+- `property_value_by_year.csv`: Valores de propriedade por ano
+- `avg_tax_by_neighborhood_top20.csv`: Top 20 bairros por valor médio de IPTU
+
+#### Age Analysis (`age_analysis/`)
+- `age_distribution_by_range.csv`: Distribuição por faixas de idade (0-10, 11-20, etc.)
+- `age_statistics.csv`: Estatísticas (média, mediana, min, max)
+
+#### Age-Value Analysis (`age_value_analysis/`)
+- `age_value_relationship.csv`: Relação entre idade de construção e valor de IPTU
+
+#### Evolution Analysis (`evolution_analysis/`)
+- `neighborhood_evolution.csv`: Evolução completa por bairro
+- `top_growth_quantity.csv`: Top bairros com maior crescimento em quantidade
+- `top_growth_value.csv`: Top bairros com maior crescimento em valor
 
 ### Visualizations
 
-`data/gold/plots/`:
-- 8 PNG files (300 DPI, publication-quality)
-- 1 HTML report (all plots embedded)
+`data/gold/plots/` contém 12 visualizações em alta qualidade (300 DPI) + relatório HTML:
+
+#### Análise de Volume (6 visualizações)
+1. `volume_by_year.png` - Volume de imóveis por ano
+2. `volume_by_type.png` - Distribuição por tipo de uso
+3. `top_neighborhoods.png` - Top 20 bairros por quantidade
+4. `volume_by_year_type.png` - Evolução ano × tipo
+5. `distribution_by_construction.png` - Distribuição por tipo de construção
+6. `temporal_distribution.png` - Distribuição temporal
+
+#### Análise de Valores de IPTU (2 visualizações)
+7. `tax_trends.png` - Tendências de valores de IPTU (Boxplot por ano)
+8. `top_tax_neighborhoods.png` - Top 20 bairros por valor de IPTU
+
+#### Análise de Idade de Construção (2 visualizações)
+9. `age_distribution.png` - Distribuição por faixas de idade de construção
+10. `age_value_relationship.png` - Relação entre idade de construção e valor de IPTU
+
+#### Análise de Evolução de Bairros (2 visualizações)
+11. `neighborhood_growth_quantity.png` - Crescimento em número de imóveis por bairro
+12. `neighborhood_growth_value.png` - Crescimento em valor médio de IPTU por bairro
+
+#### Relatório HTML
+13. `visualizations_report.html` - Relatório HTML interativo com todas as visualizações e tabelas detalhadas
 
 ### Legacy Outputs
 
