@@ -79,27 +79,50 @@ class DataEngine:
         if not os.getenv("PYSPARK_DRIVER_PYTHON"):
             os.environ["PYSPARK_DRIVER_PYTHON"] = python_executable
         
+        # Base Spark configuration (common for all modes)
         builder = SparkSession.builder \
             .appName("IPTU_Pipeline") \
-            .master(spark_master) \
             .config("spark.sql.adaptive.enabled", "true") \
             .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
             .config("spark.sql.adaptive.skewJoin.enabled", "true") \
-            .config("spark.driver.memory", "2g") \
-            .config("spark.executor.memory", "2g") \
-            .config("spark.sql.shuffle.partitions", "200") \
             .config("spark.sql.warehouse.dir", str(Path(__file__).parent.parent.parent / "spark-warehouse")) \
             .config("spark.pyspark.python", python_executable) \
             .config("spark.pyspark.driver.python", python_executable) \
-            .config("spark.network.timeout", "600s") \
             .config("spark.sql.execution.arrow.pyspark.enabled", "false") \
             .config("spark.sql.debug.maxToStringFields", "200")
         
-        # Only set driver host/bind for local mode
+        # Configure based on mode (local vs cluster)
         if spark_master.startswith("local"):
-            builder = builder \
+            # Local mode configuration - optimized for single-machine performance
+            # Extract number of cores from spark_master (e.g., "local[4]" -> 4)
+            num_cores = 4  # default
+            if "[" in spark_master and "]" in spark_master:
+                try:
+                    cores_str = spark_master.split("[")[1].split("]")[0]
+                    if cores_str == "*":
+                        import multiprocessing
+                        num_cores = multiprocessing.cpu_count()
+                    else:
+                        num_cores = int(cores_str)
+                except (ValueError, IndexError):
+                    num_cores = 4
+            
+            # Optimized settings for local mode
+            builder = builder.master(spark_master) \
+                .config("spark.driver.memory", "8g") \
+                .config("spark.driver.maxResultSize", "2g") \
+                .config("spark.sql.shuffle.partitions", str(num_cores * 4)) \
+                .config("spark.default.parallelism", str(num_cores * 2)) \
+                .config("spark.sql.adaptive.localShuffleReader.enabled", "true") \
                 .config("spark.driver.host", "localhost") \
-                .config("spark.driver.bindAddress", "127.0.0.1")
+                .config("spark.driver.bindAddress", "127.0.0.1") \
+                .config("spark.network.timeout", "300s")
+            
+            logger.info(f"Local mode optimized: {num_cores} cores, {num_cores * 4} shuffle partitions, 8g driver memory")
+        else:
+            # Cluster mode - set master after cluster-specific configs
+            # Memory will be configured below for cluster mode
+            pass  # Will be set below after cluster configs
         
         # Set default SPARK_VERSION for PyDeequ (will be refined after session creation)
         # PyDeequ needs this before importing to determine which JARs to use
@@ -124,6 +147,22 @@ class DataEngine:
             logger.debug("PyDeequ not available, data quality checks will use basic validation")
         except Exception as e:
             logger.debug(f"Could not detect PyDeequ: {str(e)}, basic validation will be used")
+        
+        # Configure JAR download repositories and timeouts (important for cluster mode)
+        # Add Maven repositories for JAR downloads
+        import tempfile
+        import os
+        maven_repos = "https://repo1.maven.org/maven2,https://repos.spark-packages.org"
+        
+        # Use OS-appropriate IVY cache directory (must be absolute path)
+        if os.name == 'nt':  # Windows
+            ivy_cache = os.path.join(tempfile.gettempdir(), ".ivy2")
+        else:  # Linux/Unix
+            ivy_cache = "/tmp/.ivy2"
+        
+        builder = builder.config("spark.jars.repositories", maven_repos) \
+                         .config("spark.jars.ivy", ivy_cache) \
+                         .config("spark.sql.execution.arrow.maxRecordsPerBatch", "10000")
         
         # Configure Delta Lake
         # If PyDeequ is also needed, we'll manually set packages instead of using configure_spark_with_delta_pip
@@ -174,16 +213,98 @@ class DataEngine:
             except Exception as e:
                 logger.warning(f"Could not configure Delta Lake: {str(e)}")
         
-        # If running in Docker with cluster, use master URL
+        # Configure for cluster mode if connecting to remote cluster
         if spark_master.startswith("spark://"):
+            # Additional config for cluster mode
+            builder = builder.config("spark.submit.deployMode", "client") \
+                             .config("spark.driver.memory", "2g") \
+                             .config("spark.executor.memory", "2g") \
+                             .config("spark.sql.shuffle.partitions", "200") \
+                             .config("spark.network.timeout", "800s") \
+                             .config("spark.executor.heartbeatInterval", "60s") \
+                             .config("spark.rpc.askTimeout", "600s") \
+                             .config("spark.sql.broadcastTimeout", "600") \
+                             .config("spark.driver.bindAddress", "0.0.0.0") \
+                             .config("spark.driver.port", "0") \
+                             .config("spark.jars.timeout", "3600")  # 1 hour timeout for JAR downloads
+            
+            # Get container's IP address for driver host
+            # In Docker cluster mode, driver must be reachable from Spark master
+            import socket
+            import subprocess
+            try:
+                # Try multiple methods to get the container IP
+                host_ip = None
+                hostname = socket.gethostname()
+                
+                # Method 1: Use hostname -i command (most reliable in Docker)
+                try:
+                    result = subprocess.run(['hostname', '-i'], capture_output=True, text=True, timeout=2)
+                    if result.returncode == 0 and result.stdout.strip():
+                        host_ip = result.stdout.strip().split()[0]  # Get first IP
+                        logger.info(f"Got IP from hostname -i: {host_ip}")
+                except Exception as e1:
+                    logger.debug(f"hostname -i failed: {e1}")
+                
+                # Method 2: Try to resolve hostname
+                if not host_ip:
+                    try:
+                        host_ip = socket.gethostbyname(hostname)
+                        logger.info(f"Resolved hostname {hostname} to IP {host_ip}")
+                    except socket.gaierror:
+                        logger.debug(f"Could not resolve hostname {hostname}")
+                
+                # Method 3: Fallback to hostname (Docker network should resolve it)
+                if not host_ip:
+                    host_ip = hostname
+                    logger.info(f"Using hostname as driver host: {host_ip}")
+                
+                builder = builder.config("spark.driver.host", host_ip)
+                logger.info(f"Connecting to Spark cluster at {spark_master} (driver host: {host_ip}, hostname: {hostname})")
+            except Exception as e:
+                logger.warning(f"Could not determine driver host: {e}, using hostname")
+                hostname = socket.gethostname()
+                builder = builder.config("spark.driver.host", hostname)
+                logger.info(f"Connecting to Spark cluster at {spark_master} (driver host: {hostname})")
+            
+            # Set master URL last
             builder = builder.master(spark_master)
-            logger.info(f"Connecting to Spark cluster at {spark_master}")
-        else:
+        elif not spark_master.startswith("local"):
+            # Other non-local modes (yarn, etc.)
             builder = builder.master(spark_master)
             logger.info(f"Using Spark in {spark_master} mode")
         
-        spark = builder.getOrCreate()
-        spark.sparkContext.setLogLevel("WARN")  # Reduce Spark log verbosity
+        try:
+            logger.info("Creating Spark session...")
+            spark = builder.getOrCreate()
+            logger.info("Spark session created, checking context...")
+            
+            # Wait a moment for context to fully initialize
+            import time
+            time.sleep(1)
+            
+            # Check if context is still active
+            if spark.sparkContext._jsc is None:
+                raise RuntimeError("SparkContext Java gateway is None - context was not created properly")
+            
+            # Verify context is not stopped
+            if spark.sparkContext._jsc.sc().isStopped():
+                raise RuntimeError("SparkContext was stopped immediately after creation")
+            
+            spark.sparkContext.setLogLevel("WARN")  # Reduce Spark log verbosity
+            logger.info(f"Spark session active - Context ID: {id(spark.sparkContext)}")
+        except Exception as e:
+            logger.error(f"Failed to create Spark session: {str(e)}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            # Try to stop any partial context to prevent "context already exists" errors
+            try:
+                from pyspark import SparkContext
+                if SparkContext._active_spark_context:
+                    logger.warning("Stopping partial SparkContext")
+                    SparkContext._active_spark_context.stop()
+            except Exception as stop_error:
+                logger.debug(f"Error stopping context: {stop_error}")
+            raise
         
         # Refine SPARK_VERSION based on actual Spark version
         spark_version = spark.version
@@ -283,7 +404,22 @@ class DataEngine:
         else:
             if not isinstance(df, pd.DataFrame):
                 raise ValueError("DataFrame must be Pandas DataFrame for Pandas engine")
-            df.to_parquet(file_path, **kwargs)
+            
+            # CRITICAL: Validate column names before saving to prevent corruption
+            uuid_cols = [col for col in df.columns if str(col).startswith('col-') and len(str(col)) > 40]
+            if uuid_cols:
+                raise ValueError(
+                    f"Cannot save DataFrame with corrupted UUID column names: {len(uuid_cols)} columns. "
+                    f"This would corrupt the silver layer. Sample: {uuid_cols[:5]}"
+                )
+            
+            # Ensure column names are strings (not tuples or other types)
+            if not all(isinstance(col, str) for col in df.columns):
+                logger.warning("Some column names are not strings, converting...")
+                df.columns = [str(col) for col in df.columns]
+            
+            # Save with explicit column name preservation
+            df.to_parquet(file_path, engine='pyarrow', **kwargs)
     
     def to_pandas(self, df: Union[pd.DataFrame, SparkDataFrame]) -> pd.DataFrame:
         """

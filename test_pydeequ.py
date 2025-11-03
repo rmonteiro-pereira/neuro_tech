@@ -4,14 +4,14 @@ Tests basic PyDeequ functionality with sample data.
 """
 import sys
 from pathlib import Path
-import logging
 
-# Setup basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s - %(message)s'
-)
-logger = logging.getLogger("pydeequ_test")
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from iptu_pipeline.utils.logger import setup_logger
+
+# Use centralized logging
+logger = setup_logger("test_pydeequ")
 
 
 def create_spark_session():

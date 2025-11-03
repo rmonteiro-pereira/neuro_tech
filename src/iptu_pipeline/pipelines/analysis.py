@@ -331,16 +331,43 @@ class IPTUAnalyzer:
                 ).withColumn(
                     "valor_iptu_numeric",
                     col("valor_iptu_clean").cast(DoubleType())
-                )
+                ).filter(col("valor_iptu_numeric").isNotNull())  # Filter out null values
                 
-                tax_stats_by_year = df_temp.groupBy("ano do exercício").agg(
-                    mean("valor_iptu_numeric").alias("media"),
-                    F.expr("percentile_approx(valor_iptu_numeric, 0.5)").alias("mediana"),
-                    spark_min("valor_iptu_numeric").alias("minimo"),
-                    spark_max("valor_iptu_numeric").alias("maximo"),
-                    spark_sum("valor_iptu_numeric").alias("total"),
-                    count("*").alias("count")
-                ).withColumnRenamed("ano do exercício", "ano")
+                # Calculate statistics for non-zero values (better distribution insights)
+                df_temp_nonzero = df_temp.filter(col("valor_iptu_numeric") > 0)
+                
+                if df_temp_nonzero.count() > 0:
+                    # Use non-zero values for mean, median, min, max
+                    tax_stats_nonzero = df_temp_nonzero.groupBy("ano do exercício").agg(
+                        mean("valor_iptu_numeric").alias("media"),
+                        F.expr("percentile_approx(valor_iptu_numeric, 0.5)").alias("mediana"),
+                        spark_min("valor_iptu_numeric").alias("minimo"),
+                        spark_max("valor_iptu_numeric").alias("maximo")
+                    )
+                    
+                    # Total and count should include zeros (all valid records)
+                    tax_total_count = df_temp.groupBy("ano do exercício").agg(
+                        spark_sum("valor_iptu_numeric").alias("total"),
+                        count("*").alias("count"),
+                        count(col("valor_iptu_numeric").cast("double")).alias("count_valid")
+                    )
+                    
+                    # Join both aggregations
+                    tax_stats_by_year = tax_stats_nonzero.join(
+                        tax_total_count, 
+                        on="ano do exercício", 
+                        how="outer"
+                    ).withColumnRenamed("ano do exercício", "ano")
+                else:
+                    # Fallback: if no non-zero values, use all valid values
+                    tax_stats_by_year = df_temp.groupBy("ano do exercício").agg(
+                        mean("valor_iptu_numeric").alias("media"),
+                        F.expr("percentile_approx(valor_iptu_numeric, 0.5)").alias("mediana"),
+                        spark_min("valor_iptu_numeric").alias("minimo"),
+                        spark_max("valor_iptu_numeric").alias("maximo"),
+                        spark_sum("valor_iptu_numeric").alias("total"),
+                        count("*").alias("count")
+                    ).withColumnRenamed("ano do exercício", "ano")
                 
                 results["tax_stats_by_year"] = tax_stats_by_year
                 
@@ -386,15 +413,55 @@ class IPTUAnalyzer:
                 valor_iptu_numeric = pd.to_numeric(valor_iptu_clean, errors='coerce')
                 df_temp["valor_iptu_numeric"] = valor_iptu_numeric
                 
-                tax_stats_by_year = df_temp.groupby("ano do exercício")["valor_iptu_numeric"].agg([
-                    ('media', 'mean'),
-                    ('mediana', 'median'),
-                    ('minimo', 'min'),
-                    ('maximo', 'max'),
-                    ('total', 'sum'),
-                    ('count', 'count')
-                ]).reset_index()
+                # Filter out invalid values (NaN, zero, or negative) before aggregation
+                # But keep zeros for total calculation (they represent actual zero tax)
+                df_temp_valid = df_temp[df_temp["valor_iptu_numeric"].notna()]
+                
+                # Calculate statistics with valid values only (excluding zeros for mean/median)
+                # This gives better insights into the distribution of non-zero IPTU values
+                df_temp_nonzero = df_temp_valid[df_temp_valid["valor_iptu_numeric"] > 0]
+                
+                if not df_temp_nonzero.empty:
+                    # Use non-zero values for mean, median, min, max
+                    tax_stats_nonzero = df_temp_nonzero.groupby("ano do exercício")["valor_iptu_numeric"].agg([
+                        ('media', 'mean'),
+                        ('mediana', 'median'),
+                        ('minimo', 'min'),
+                        ('maximo', 'max')
+                    ]).reset_index()
+                    
+                    # Total and count should include zeros (all valid records)
+                    tax_total_count = df_temp_valid.groupby("ano do exercício")["valor_iptu_numeric"].agg([
+                        ('total', 'sum'),
+                        ('count', 'count'),
+                        ('count_nonzero', lambda x: (x > 0).sum())  # Count of non-zero values
+                    ]).reset_index()
+                    
+                    # Merge both aggregations (left join to preserve all years with non-zero values)
+                    tax_stats_by_year = tax_stats_nonzero.merge(tax_total_count, on="ano do exercício", how='outer')
+                    
+                    # Fill missing stats from non-zero aggregation with zeros (years with only zeros)
+                    for col in ['media', 'mediana', 'minimo', 'maximo']:
+                        if col in tax_stats_by_year.columns:
+                            tax_stats_by_year[col] = tax_stats_by_year[col].fillna(0)
+                else:
+                    # Fallback: if no non-zero values, use all valid values (including zeros)
+                    tax_stats_by_year = df_temp_valid.groupby("ano do exercício")["valor_iptu_numeric"].agg([
+                        ('media', 'mean'),
+                        ('mediana', 'median'),
+                        ('minimo', 'min'),
+                        ('maximo', 'max'),
+                        ('total', 'sum'),
+                        ('count', 'count'),
+                        ('count_nonzero', lambda x: (x > 0).sum())
+                    ]).reset_index()
+                
                 tax_stats_by_year = tax_stats_by_year.rename(columns={"ano do exercício": "ano"})
+                
+                # Ensure numeric columns are properly typed
+                for col in ['media', 'mediana', 'minimo', 'maximo', 'total', 'count', 'count_nonzero']:
+                    if col in tax_stats_by_year.columns:
+                        tax_stats_by_year[col] = pd.to_numeric(tax_stats_by_year[col], errors='coerce')
                 
                 results["tax_stats_by_year"] = tax_stats_by_year
                 
@@ -437,6 +504,370 @@ class IPTUAnalyzer:
         
         return results
     
+    def analyze_construction_age(self) -> Dict[str, Union[pd.DataFrame, SparkDataFrame]]:
+        """
+        Analyze distribution by construction age.
+        Answers: Como o inventário está distribuido em termos de idade de construção?
+        
+        Returns:
+            Dictionary with age distribution analysis results
+        """
+        logger.info("Analyzing construction age distribution")
+        
+        results = {}
+        columns = self.engine.get_columns(self.df)
+        current_year = pd.Timestamp.now().year
+        
+        if "ano da construção corrigido" not in columns:
+            logger.warning("Column 'ano da construção corrigido' not found")
+            return results
+        
+        if self.is_spark:
+            from pyspark.sql import functions as F
+            from pyspark.sql.functions import col, count, when, lit, round, desc, mean as spark_mean, min as spark_min, max as spark_max
+            from pyspark.sql.types import IntegerType
+            
+            # Calculate age from construction year
+            df_with_age = self.df.withColumn(
+                "ano_construcao",
+                col("ano da construção corrigido").cast(IntegerType())
+            ).withColumn(
+                "idade_construcao",
+                lit(current_year) - col("ano_construcao")
+            ).filter(
+                col("ano_construcao").isNotNull() & 
+                (col("ano_construcao") > 0) & 
+                (col("ano_construcao") <= current_year)
+            )
+            
+            # Distribution by age ranges
+            df_with_age_ranges = df_with_age.withColumn(
+                "faixa_idade",
+                when(col("idade_construcao") < 10, "0-10 anos")
+                .when(col("idade_construcao") < 20, "11-20 anos")
+                .when(col("idade_construcao") < 30, "21-30 anos")
+                .when(col("idade_construcao") < 40, "31-40 anos")
+                .when(col("idade_construcao") < 50, "41-50 anos")
+                .when(col("idade_construcao") < 60, "51-60 anos")
+                .otherwise("60+ anos")
+            )
+            
+            age_dist = df_with_age_ranges.groupBy("faixa_idade").agg(
+                count("*").alias("quantidade")
+            ).orderBy(desc("quantidade"))
+            
+            results["age_distribution_by_range"] = age_dist
+            
+            # Age statistics
+            age_stats = df_with_age.agg(
+                spark_mean("idade_construcao").alias("media"),
+                F.expr("percentile_approx(idade_construcao, 0.5)").alias("mediana"),
+                spark_min("idade_construcao").alias("minimo"),
+                spark_max("idade_construcao").alias("maximo")
+            )
+            results["age_statistics"] = age_stats
+        else:
+            # Pandas implementation
+            df_with_age = self.df.copy()
+            df_with_age["ano_construcao"] = pd.to_numeric(
+                df_with_age["ano da construção corrigido"], errors='coerce'
+            )
+            df_with_age["idade_construcao"] = current_year - df_with_age["ano_construcao"]
+            
+            # Filter valid ages
+            df_with_age = df_with_age[
+                df_with_age["ano_construcao"].notna() & 
+                (df_with_age["ano_construcao"] > 0) & 
+                (df_with_age["ano_construcao"] <= current_year)
+            ]
+            
+            # Age ranges
+            df_with_age["faixa_idade"] = pd.cut(
+                df_with_age["idade_construcao"],
+                bins=[-1, 10, 20, 30, 40, 50, 60, float('inf')],
+                labels=["0-10 anos", "11-20 anos", "21-30 anos", 
+                       "31-40 anos", "41-50 anos", "51-60 anos", "60+ anos"]
+            )
+            
+            age_dist = df_with_age["faixa_idade"].value_counts().reset_index()
+            age_dist.columns = ["faixa_idade", "quantidade"]
+            age_dist["percentual"] = (age_dist["quantidade"] / len(df_with_age) * 100).round(2)
+            age_dist = age_dist.sort_values("quantidade", ascending=False)
+            results["age_distribution_by_range"] = age_dist
+            
+            # Age statistics
+            age_stats = pd.DataFrame({
+                "metrica": ["media", "mediana", "minimo", "maximo"],
+                "valor": [
+                    df_with_age["idade_construcao"].mean(),
+                    df_with_age["idade_construcao"].median(),
+                    df_with_age["idade_construcao"].min(),
+                    df_with_age["idade_construcao"].max()
+                ]
+            })
+            results["age_statistics"] = age_stats
+        
+        self.analyses_results["age_analysis"] = results
+        logger.info("[OK] Construction age analysis complete")
+        return results
+    
+    def analyze_age_value_relationship(self) -> Dict[str, Union[pd.DataFrame, SparkDataFrame]]:
+        """
+        Analyze relationship between construction age and property value.
+        Answers: Há relação direta entre idade e valor?
+        
+        Returns:
+            Dictionary with age-value relationship analysis
+        """
+        logger.info("Analyzing age-value relationship")
+        
+        results = {}
+        columns = self.engine.get_columns(self.df)
+        current_year = pd.Timestamp.now().year
+        
+        required_cols = ["ano da construção corrigido", "valor IPTU", "valor total do imóvel estimado"]
+        missing_cols = [col for col in required_cols if col not in columns]
+        
+        if missing_cols:
+            logger.warning(f"Missing columns for age-value analysis: {missing_cols}")
+            return results
+        
+        if self.is_spark:
+            from pyspark.sql.functions import col, avg, count, when, lit, round, regexp_replace, trim
+            from pyspark.sql.types import IntegerType, DoubleType
+            
+            # Calculate age and clean values
+            df_analysis = self.df.withColumn(
+                "ano_construcao",
+                col("ano da construção corrigido").cast(IntegerType())
+            ).withColumn(
+                "idade_construcao",
+                lit(current_year) - col("ano_construcao")
+            )
+            
+            # Clean valor IPTU
+            valor_iptu_clean = regexp_replace(
+                regexp_replace(col("valor IPTU"), ",", "."), "R\\$", ""
+            )
+            df_analysis = df_analysis.withColumn(
+                "valor_iptu_numeric",
+                trim(valor_iptu_clean).cast(DoubleType())
+            ).filter(
+                col("ano_construcao").isNotNull() & 
+                (col("ano_construcao") > 0) & 
+                col("valor_iptu_numeric").isNotNull() &
+                (col("valor_iptu_numeric") > 0)
+            )
+            
+            # Group by age ranges
+            df_with_ranges = df_analysis.withColumn(
+                "faixa_idade",
+                when(col("idade_construcao") < 10, "0-10")
+                .when(col("idade_construcao") < 20, "11-20")
+                .when(col("idade_construcao") < 30, "21-30")
+                .when(col("idade_construcao") < 40, "31-40")
+                .when(col("idade_construcao") < 50, "41-50")
+                .otherwise("50+")
+            )
+            
+            age_value_stats = df_with_ranges.groupBy("faixa_idade").agg(
+                avg("valor_iptu_numeric").alias("valor_medio"),
+                count("*").alias("quantidade")
+            ).orderBy("faixa_idade")
+            
+            results["age_value_relationship"] = age_value_stats
+        else:
+            # Pandas implementation
+            df_analysis = self.df.copy()
+            df_analysis["ano_construcao"] = pd.to_numeric(
+                df_analysis["ano da construção corrigido"], errors='coerce'
+            )
+            df_analysis["idade_construcao"] = current_year - df_analysis["ano_construcao"]
+            
+            # Clean valor IPTU
+            valor_iptu_clean = df_analysis["valor IPTU"].astype(str).str.replace(
+                ',', '.', regex=False
+            ).str.replace('R$', '', regex=False).str.strip()
+            df_analysis["valor_iptu_numeric"] = pd.to_numeric(valor_iptu_clean, errors='coerce')
+            
+            # Filter valid data
+            df_analysis = df_analysis[
+                df_analysis["ano_construcao"].notna() & 
+                (df_analysis["ano_construcao"] > 0) &
+                df_analysis["valor_iptu_numeric"].notna() &
+                (df_analysis["valor_iptu_numeric"] > 0)
+            ]
+            
+            # Age ranges
+            df_analysis["faixa_idade"] = pd.cut(
+                df_analysis["idade_construcao"],
+                bins=[-1, 10, 20, 30, 40, 50, float('inf')],
+                labels=["0-10", "11-20", "21-30", "31-40", "41-50", "50+"]
+            )
+            
+            age_value_stats = df_analysis.groupby("faixa_idade").agg({
+                "valor_iptu_numeric": ["mean", "count"]
+            }).reset_index()
+            age_value_stats.columns = ["faixa_idade", "valor_medio", "quantidade"]
+            age_value_stats = age_value_stats.sort_values("faixa_idade")
+            
+            results["age_value_relationship"] = age_value_stats
+        
+        self.analyses_results["age_value_analysis"] = results
+        logger.info("[OK] Age-value relationship analysis complete")
+        return results
+    
+    def analyze_neighborhood_evolution(self) -> Dict[str, Union[pd.DataFrame, SparkDataFrame]]:
+        """
+        Analyze neighborhood evolution in terms of number of properties and values.
+        Answers: Quais bairros apresentam maior evolução em número de imóveis? E em relação a valor?
+        
+        Returns:
+            Dictionary with neighborhood evolution analysis
+        """
+        logger.info("Analyzing neighborhood evolution")
+        
+        results = {}
+        columns = self.engine.get_columns(self.df)
+        
+        if "bairro" not in columns or "ano do exercício" not in columns:
+            logger.warning("Required columns not found for neighborhood evolution")
+            return results
+        
+        if self.is_spark:
+            from pyspark.sql.functions import col, count, sum, avg, first, last, when, desc, regexp_replace, trim
+            from pyspark.sql.window import Window
+            from pyspark.sql.types import DoubleType
+            
+            # Clean valor IPTU
+            valor_iptu_clean = regexp_replace(
+                regexp_replace(col("valor IPTU"), ",", "."), "R\\$", ""
+            )
+            df_analysis = self.df.withColumn(
+                "valor_iptu_numeric",
+                trim(valor_iptu_clean).cast(DoubleType())
+            ).filter(
+                col("valor_iptu_numeric").isNotNull() & (col("valor_iptu_numeric") > 0)
+            )
+            
+            # Get years
+            years_df = df_analysis.select("ano do exercício").distinct().orderBy("ano do exercício")
+            years = [row["ano do exercício"] for row in years_df.collect()]
+            
+            if len(years) < 2:
+                logger.warning("Need at least 2 years for evolution analysis")
+                return results
+            
+            first_year = years[0]
+            last_year = years[-1]
+            
+            # Count and average value by neighborhood and year
+            neighborhood_year_stats = df_analysis.groupBy("bairro", "ano do exercício").agg(
+                count("*").alias("quantidade"),
+                avg("valor_iptu_numeric").alias("valor_medio")
+            )
+            
+            # Calculate first and last year stats per neighborhood
+            first_year_stats = neighborhood_year_stats.filter(
+                col("ano do exercício") == first_year
+            ).select(
+                col("bairro").alias("bairro"),
+                col("quantidade").alias("quantidade_inicial"),
+                col("valor_medio").alias("valor_medio_inicial")
+            )
+            
+            last_year_stats = neighborhood_year_stats.filter(
+                col("ano do exercício") == last_year
+            ).select(
+                col("bairro").alias("bairro"),
+                col("quantidade").alias("quantidade_final"),
+                col("valor_medio").alias("valor_medio_final")
+            )
+            
+            # Join and calculate evolution
+            evolution = first_year_stats.join(
+                last_year_stats, on="bairro", how="inner"
+            ).withColumn(
+                "crescimento_quantidade",
+                ((col("quantidade_final") - col("quantidade_inicial")) / col("quantidade_inicial") * 100)
+            ).withColumn(
+                "crescimento_valor",
+                ((col("valor_medio_final") - col("valor_medio_inicial")) / col("valor_medio_inicial") * 100)
+            ).filter(
+                col("quantidade_inicial") > 10  # Minimum threshold
+            ).orderBy(desc("crescimento_quantidade"))
+            
+            results["neighborhood_evolution"] = evolution
+            
+            # Top growing neighborhoods by quantity
+            results["top_growth_quantity"] = evolution.orderBy(desc("crescimento_quantidade")).limit(20)
+            
+            # Top growing neighborhoods by value
+            results["top_growth_value"] = evolution.orderBy(desc("crescimento_valor")).limit(20)
+        else:
+            # Pandas implementation
+            # Clean valor IPTU
+            valor_iptu_clean = self.df["valor IPTU"].astype(str).str.replace(
+                ',', '.', regex=False
+            ).str.replace('R$', '', regex=False).str.strip()
+            self.df["valor_iptu_numeric"] = pd.to_numeric(valor_iptu_clean, errors='coerce')
+            
+            df_analysis = self.df[
+                self.df["valor_iptu_numeric"].notna() & 
+                (self.df["valor_iptu_numeric"] > 0)
+            ]
+            
+            years = sorted(df_analysis["ano do exercício"].unique())
+            
+            if len(years) < 2:
+                logger.warning("Need at least 2 years for evolution analysis")
+                return results
+            
+            first_year = years[0]
+            last_year = years[-1]
+            
+            # Stats by neighborhood and year
+            neighborhood_year_stats = df_analysis.groupby(["bairro", "ano do exercício"]).agg({
+                "valor_iptu_numeric": ["count", "mean"]
+            }).reset_index()
+            neighborhood_year_stats.columns = ["bairro", "ano", "quantidade", "valor_medio"]
+            
+            # First and last year
+            first_year_stats = neighborhood_year_stats[
+                neighborhood_year_stats["ano"] == first_year
+            ][["bairro", "quantidade", "valor_medio"]].rename(
+                columns={"quantidade": "quantidade_inicial", "valor_medio": "valor_medio_inicial"}
+            )
+            
+            last_year_stats = neighborhood_year_stats[
+                neighborhood_year_stats["ano"] == last_year
+            ][["bairro", "quantidade", "valor_medio"]].rename(
+                columns={"quantidade": "quantidade_final", "valor_medio": "valor_medio_final"}
+            )
+            
+            # Join and calculate evolution
+            evolution = first_year_stats.merge(
+                last_year_stats, on="bairro", how="inner"
+            )
+            evolution["crescimento_quantidade"] = (
+                (evolution["quantidade_final"] - evolution["quantidade_inicial"]) / 
+                evolution["quantidade_inicial"] * 100
+            )
+            evolution["crescimento_valor"] = (
+                (evolution["valor_medio_final"] - evolution["valor_medio_inicial"]) / 
+                evolution["valor_medio_inicial"] * 100
+            )
+            evolution = evolution[evolution["quantidade_inicial"] > 10]  # Minimum threshold
+            evolution = evolution.sort_values("crescimento_quantidade", ascending=False)
+            
+            results["neighborhood_evolution"] = evolution
+            results["top_growth_quantity"] = evolution.head(20)
+            results["top_growth_value"] = evolution.sort_values("crescimento_valor", ascending=False).head(20)
+        
+        self.analyses_results["evolution_analysis"] = results
+        logger.info("[OK] Neighborhood evolution analysis complete")
+        return results
+    
     def generate_all_analyses(self) -> Dict[str, Dict]:
         """
         Generate all available analyses.
@@ -452,8 +883,11 @@ class IPTUAnalyzer:
         all_results["volume"] = self.analyze_volume_total()
         all_results["distribution"] = self.analyze_distribution_physical()
         
-        # Additional analysis
+        # Additional analyses
         all_results["tax_trends"] = self.analyze_tax_value_trends()
+        all_results["age"] = self.analyze_construction_age()
+        all_results["age_value"] = self.analyze_age_value_relationship()
+        all_results["evolution"] = self.analyze_neighborhood_evolution()
         
         logger.info("[OK] All analyses complete")
         return all_results

@@ -1,0 +1,444 @@
+(neuro-tech) PS neuro_tech> .venv\Scripts\Activate.ps1;$env:IPTU_DATA_ENGINE='pyspark';python main.py
+INFO - Starting IPTU Data Pipeline
+INFO - Running pipeline (direct execution mode)
+INFO - For Airflow orchestration, deploy the DAG from airflow_dag.py
+INFO - Delta Lake + PyDeequ configured: JARs loaded + extensions set (manual package combination)
+INFO - Creating Spark session...
+https://repo1.maven.org/maven2 added as a remote repository with the name: repo-1
+https://repos.spark-packages.org added as a remote repository with the name: repo-2
+:: loading settings :: url = jar:file:/C:/Users/Rodrigo/.spark/spark-3.5.5-bin-hadoop3/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: C:\Users\Rodrigo\AppData\Local\Temp\.ivy2\cache
+The jars for the packages stored in: C:\Users\Rodrigo\AppData\Local\Temp\.ivy2\jars
+io.delta#delta-spark_2.12 added as a dependency
+com.amazon.deequ#deequ added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-a273182e-f694-467a-8c0c-18bcd23a0f1a;1.0
+        confs: [default]
+        found io.delta#delta-spark_2.12;3.3.2 in central
+        found io.delta#delta-storage;3.3.2 in central
+        found org.antlr#antlr4-runtime;4.9.3 in central
+        found com.amazon.deequ#deequ;2.0.8-spark-3.5 in central
+        found org.scala-lang#scala-reflect;2.12.10 in central
+        found org.scalanlp#breeze_2.12;2.1.0 in central
+        found org.scalanlp#breeze-macros_2.12;2.1.0 in central
+        found org.typelevel#spire_2.12;0.17.0 in central
+        found org.typelevel#spire-macros_2.12;0.17.0 in central
+        found org.typelevel#algebra_2.12;2.0.1 in central
+        found org.typelevel#cats-kernel_2.12;2.1.1 in central
+        found org.typelevel#spire-platform_2.12;0.17.0 in central
+        found org.typelevel#spire-util_2.12;0.17.0 in central
+        found dev.ludovic.netlib#blas;3.0.1 in central
+        found dev.ludovic.netlib#lapack;3.0.1 in central
+        found dev.ludovic.netlib#arpack;3.0.1 in central
+        found net.sf.opencsv#opencsv;2.3 in central
+        found com.github.wendykierp#JTransforms;3.1 in central
+        found pl.edu.icm#JLargeArrays;1.5 in central
+        found org.apache.commons#commons-math3;3.2 in central
+        found org.slf4j#slf4j-api;1.7.5 in central
+        found org.scala-lang.modules#scala-collection-compat_2.12;2.7.0 in central
+downloading https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.3.2/delta-spark_2.12-3.3.2.jar ...
+        [SUCCESSFUL ] io.delta#delta-spark_2.12;3.3.2!delta-spark_2.12.jar (4902ms)
+downloading https://repo1.maven.org/maven2/com/amazon/deequ/deequ/2.0.8-spark-3.5/deequ-2.0.8-spark-3.5.jar ...
+        [SUCCESSFUL ] com.amazon.deequ#deequ;2.0.8-spark-3.5!deequ.jar (1191ms)
+downloading https://repo1.maven.org/maven2/io/delta/delta-storage/3.3.2/delta-storage-3.3.2.jar ...
+        [SUCCESSFUL ] io.delta#delta-storage;3.3.2!delta-storage.jar (117ms)
+downloading https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.3/antlr4-runtime-4.9.3.jar ...
+        [SUCCESSFUL ] org.antlr#antlr4-runtime;4.9.3!antlr4-runtime.jar (321ms)
+downloading https://repo1.maven.org/maven2/org/scala-lang/scala-reflect/2.12.10/scala-reflect-2.12.10.jar ...
+        [SUCCESSFUL ] org.scala-lang#scala-reflect;2.12.10!scala-reflect.jar (2975ms)
+downloading https://repo1.maven.org/maven2/org/scalanlp/breeze_2.12/2.1.0/breeze_2.12-2.1.0.jar ...
+        [SUCCESSFUL ] org.scalanlp#breeze_2.12;2.1.0!breeze_2.12.jar (10023ms)
+downloading https://repo1.maven.org/maven2/org/scalanlp/breeze-macros_2.12/2.1.0/breeze-macros_2.12-2.1.0.jar ...
+        [SUCCESSFUL ] org.scalanlp#breeze-macros_2.12;2.1.0!breeze-macros_2.12.jar (170ms)
+downloading https://repo1.maven.org/maven2/dev/ludovic/netlib/blas/3.0.1/blas-3.0.1.jar ...
+        [SUCCESSFUL ] dev.ludovic.netlib#blas;3.0.1!blas.jar (233ms)
+downloading https://repo1.maven.org/maven2/dev/ludovic/netlib/lapack/3.0.1/lapack-3.0.1.jar ...
+        [SUCCESSFUL ] dev.ludovic.netlib#lapack;3.0.1!lapack.jar (631ms)
+downloading https://repo1.maven.org/maven2/dev/ludovic/netlib/arpack/3.0.1/arpack-3.0.1.jar ...
+        [SUCCESSFUL ] dev.ludovic.netlib#arpack;3.0.1!arpack.jar (137ms)
+downloading https://repo1.maven.org/maven2/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar ...
+        [SUCCESSFUL ] net.sf.opencsv#opencsv;2.3!opencsv.jar (90ms)
+downloading https://repo1.maven.org/maven2/com/github/wendykierp/JTransforms/3.1/JTransforms-3.1.jar ...
+        [SUCCESSFUL ] com.github.wendykierp#JTransforms;3.1!JTransforms.jar (911ms)
+downloading https://repo1.maven.org/maven2/org/apache/commons/commons-math3/3.2/commons-math3-3.2.jar ...
+        [SUCCESSFUL ] org.apache.commons#commons-math3;3.2!commons-math3.jar (1370ms)
+downloading https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar ...
+        [SUCCESSFUL ] org.slf4j#slf4j-api;1.7.5!slf4j-api.jar (139ms)
+downloading https://repo1.maven.org/maven2/org/scala-lang/modules/scala-collection-compat_2.12/2.7.0/scala-collection-compat_2.12-2.7.0.jar ...
+        [SUCCESSFUL ] org.scala-lang.modules#scala-collection-compat_2.12;2.7.0!scala-collection-compat_2.12.jar (254ms)
+downloading https://repo1.maven.org/maven2/org/typelevel/spire_2.12/0.17.0/spire_2.12-0.17.0.jar ...
+        [SUCCESSFUL ] org.typelevel#spire_2.12;0.17.0!spire_2.12.jar (5988ms)
+downloading https://repo1.maven.org/maven2/org/typelevel/spire-macros_2.12/0.17.0/spire-macros_2.12-0.17.0.jar ...
+        [SUCCESSFUL ] org.typelevel#spire-macros_2.12;0.17.0!spire-macros_2.12.jar (182ms)
+downloading https://repo1.maven.org/maven2/org/typelevel/spire-platform_2.12/0.17.0/spire-platform_2.12-0.17.0.jar ...
+        [SUCCESSFUL ] org.typelevel#spire-platform_2.12;0.17.0!spire-platform_2.12.jar (105ms)
+downloading https://repo1.maven.org/maven2/org/typelevel/spire-util_2.12/0.17.0/spire-util_2.12-0.17.0.jar ...
+        [SUCCESSFUL ] org.typelevel#spire-util_2.12;0.17.0!spire-util_2.12.jar (116ms)
+downloading https://repo1.maven.org/maven2/org/typelevel/algebra_2.12/2.0.1/algebra_2.12-2.0.1.jar ...
+        [SUCCESSFUL ] org.typelevel#algebra_2.12;2.0.1!algebra_2.12.jar (1072ms)
+downloading https://repo1.maven.org/maven2/org/typelevel/cats-kernel_2.12/2.1.1/cats-kernel_2.12-2.1.1.jar ...
+        [SUCCESSFUL ] org.typelevel#cats-kernel_2.12;2.1.1!cats-kernel_2.12.jar (2650ms)
+downloading https://repo1.maven.org/maven2/pl/edu/icm/JLargeArrays/1.5/JLargeArrays-1.5.jar ...
+        [SUCCESSFUL ] pl.edu.icm#JLargeArrays;1.5!JLargeArrays.jar (399ms)
+:: resolution report :: resolve 11046ms :: artifacts dl 33995ms
+        :: modules in use:
+        com.amazon.deequ#deequ;2.0.8-spark-3.5 from central in [default]
+        com.github.wendykierp#JTransforms;3.1 from central in [default]
+        dev.ludovic.netlib#arpack;3.0.1 from central in [default]
+        dev.ludovic.netlib#blas;3.0.1 from central in [default]
+        dev.ludovic.netlib#lapack;3.0.1 from central in [default]
+        io.delta#delta-spark_2.12;3.3.2 from central in [default]
+        io.delta#delta-storage;3.3.2 from central in [default]
+        net.sf.opencsv#opencsv;2.3 from central in [default]
+        org.antlr#antlr4-runtime;4.9.3 from central in [default]
+        org.apache.commons#commons-math3;3.2 from central in [default]
+        org.scala-lang#scala-reflect;2.12.10 from central in [default]
+        org.scala-lang.modules#scala-collection-compat_2.12;2.7.0 from central in [default]
+        org.scalanlp#breeze-macros_2.12;2.1.0 from central in [default]
+        org.scalanlp#breeze_2.12;2.1.0 from central in [default]
+        org.slf4j#slf4j-api;1.7.5 from central in [default]
+        org.typelevel#algebra_2.12;2.0.1 from central in [default]
+        org.typelevel#cats-kernel_2.12;2.1.1 from central in [default]
+        org.typelevel#spire-macros_2.12;0.17.0 from central in [default]
+        org.typelevel#spire-platform_2.12;0.17.0 from central in [default]
+        org.typelevel#spire-util_2.12;0.17.0 from central in [default]
+        org.typelevel#spire_2.12;0.17.0 from central in [default]
+        pl.edu.icm#JLargeArrays;1.5 from central in [default]
+        :: evicted modules:
+        org.scala-lang#scala-reflect;2.12.15 by [org.scala-lang#scala-reflect;2.12.10] in [default]
+        org.scala-lang.modules#scala-collection-compat_2.12;2.2.0 by [org.scala-lang.modules#scala-collection-compat_2.12;2.7.0] in [default]
+        org.apache.commons#commons-math3;3.5 by [org.apache.commons#commons-math3;3.2] in [default]
+        ---------------------------------------------------------------------
+        |                  |            modules            ||   artifacts   |
+        |       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+        ---------------------------------------------------------------------
+        |      default     |   25  |   22  |   22  |   3   ||   22  |   22  |
+        ---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-a273182e-f694-467a-8c0c-18bcd23a0f1a
+        confs: [default]
+        22 artifacts copied, 0 already retrieved (41201kB/764ms)
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+INFO - Spark session created, checking context...
+INFO - Spark session active - Context ID: 2087239581008
+INFO - Spark session created - Version: 3.5.5
+INFO - Using PYSPARK engine
+INFO - PyDeequ data quality enabled for medallion architecture
+INFO - ================================================================================
+INFO - Starting IPTU Data Pipeline (Medallion Architecture)
+INFO - ================================================================================
+INFO - Raw layer (source files): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw
+INFO - Bronze layer (cleaned): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze
+INFO - Silver layer (consolidated): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\silver
+INFO - Gold layer (refined/analysis/plots): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold
+INFO - Data catalog (metadata): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog
+INFO -
+================================================================================
+INFO - [RAW LAYER] Cataloging Source Data Files
+INFO - ================================================================================
+INFO - Loaded existing catalog with 5 entries
+INFO - Scanning raw data files...
+INFO - Discovered file for year 2020: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2020\iptu_2020.csv
+INFO - Discovered file for year 2021: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2021\iptu_2021.csv
+INFO - Discovered file for year 2022: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2022\iptu_2022.csv
+INFO - Discovered file for year 2023: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2023\iptu_2023.csv
+INFO - Discovered file for year 2024: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json
+WARNING - Could not get schema snapshot for C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json: All arrays must be of the same length
+INFO - Scan complete: 5 files cataloged
+INFO - Catalog summary: {'total_files': 5, 'by_status': {'completed': 2, 'failed': 3}, 'by_file_type': {'csv': 4, 'json': 1}, 'total_size_bytes': 1217749409, 'total_size_gb': 1.13}
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - [OK] Raw files cataloged: 5 files
+INFO -
+================================================================================
+INFO - [BRONZE LAYER] Cleaning and Cataloging Raw Data
+INFO - ================================================================================
+INFO -
+Processing year 2020 to bronze layer
+INFO - Marked year 2020 as processing
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2020: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2020\iptu_2020.csv (engine: pyspark)
+INFO - [OK] Loaded 2020: 403,915 rows, 32 columns
+INFO - Starting data quality validation for year 2020
+INFO - [PASS] Validation PASSED for year 2020
+WARNING - [WARN] 3 warnings for year 2020:
+WARNING -   - Missing required columns: valor IPTU, quant pavimentos. Similar columns found that will be renamed during transformation: valor cobrado de IPTU -> valor IPTU, quantidade de pavimentos -> quant pavimentos
+WARNING -   - Extra columns with different names matching known mappings (will be renamed during transformation): quantidade de pavimentos -> quant pavimentos, valor cobrado de IPTU -> valor IPTU
+WARNING -   - Found 60 duplicate rows (0.01%)
+INFO - Normalizing column names for year 2020 (engine: pyspark)
+INFO - Handling missing columns for year 2020
+WARNING - [WARN] Found 2 similar column names. Renaming to match common schema: {'quantidade de pavimentos': 'quant pavimentos', 'valor cobrado de IPTU': 'valor IPTU'}
+INFO - Standardizing data types for year 2020
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
+INFO - [OK] Year 2020 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2020
+INFO - Marked year 2020 as completed
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Validating bronze layer for year 2020
+25/11/02 21:36:32 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+25/11/02 21:36:35 WARN DAGScheduler: Broadcasting large task binary with size 1156.2 KiB
+Unable to map type DateType
+INFO - 
+Processing year 2021 to bronze layer
+INFO - Marked year 2021 as processing
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2021: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2021\iptu_2021.csv (engine: pyspark)
+INFO - [OK] Loaded 2021: 407,245 rows, 32 columns
+INFO - Starting data quality validation for year 2021
+INFO - [PASS] Validation PASSED for year 2021
+WARNING - [WARN] 3 warnings for year 2021:
+WARNING -   - Missing required columns: valor IPTU, quant pavimentos. Similar columns found that will be renamed during transformation: valor cobrado de IPTU -> valor IPTU, quantidade de pavimentos -> quant pavimentos
+WARNING -   - Extra columns with different names matching known mappings (will be renamed during transformation): quantidade de pavimentos -> quant pavimentos, valor cobrado de IPTU -> valor IPTU
+WARNING -   - Found 60 duplicate rows (0.01%)
+INFO - Normalizing column names for year 2021 (engine: pyspark)
+INFO - Handling missing columns for year 2021
+WARNING - [WARN] Found 2 similar column names. Renaming to match common schema: {'quantidade de pavimentos': 'quant pavimentos', 'valor cobrado de IPTU': 'valor IPTU'}
+INFO - Standardizing data types for year 2021
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
+INFO - [OK] Year 2021 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2021
+INFO - Marked year 2021 as completed
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Validating bronze layer for year 2021
+25/11/02 21:37:58 WARN DAGScheduler: Broadcasting large task binary with size 1156.9 KiB
+Unable to map type DateType
+INFO - 
+Processing year 2022 to bronze layer
+INFO - Marked year 2022 as processing
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2022: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2022\iptu_2022.csv (engine: pyspark)
+INFO - [OK] Loaded 2022: 411,090 rows, 32 columns
+INFO - Starting data quality validation for year 2022
+INFO - [PASS] Validation PASSED for year 2022
+WARNING - [WARN] 3 warnings for year 2022:
+WARNING -   - Missing required columns: valor IPTU, quant pavimentos. Similar columns found that will be renamed during transformation: valor cobrado de IPTU -> valor IPTU, quantidade de pavimentos -> quant pavimentos
+WARNING -   - Extra columns with different names matching known mappings (will be renamed during transformation): quantidade de pavimentos -> quant pavimentos, valor cobrado de IPTU -> valor IPTU
+WARNING -   - Found 60 duplicate rows (0.01%)
+INFO - Normalizing column names for year 2022 (engine: pyspark)
+INFO - Handling missing columns for year 2022
+WARNING - [WARN] Found 2 similar column names. Renaming to match common schema: {'quantidade de pavimentos': 'quant pavimentos', 'valor cobrado de IPTU': 'valor IPTU'}
+INFO - Standardizing data types for year 2022
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
+INFO - [OK] Year 2022 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2022
+INFO - Marked year 2022 as completed
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Validating bronze layer for year 2022
+25/11/02 21:39:13 WARN DAGScheduler: Broadcasting large task binary with size 1156.9 KiB
+Unable to map type DateType
+INFO - 
+Processing year 2023 to bronze layer
+INFO - Marked year 2023 as processing
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2023: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2023\iptu_2023.csv (engine: pyspark)
+INFO - [OK] Loaded 2023: 415,029 rows, 32 columns
+INFO - Starting data quality validation for year 2023
+INFO - [PASS] Validation PASSED for year 2023
+WARNING - [WARN] 3 warnings for year 2023:
+WARNING -   - Missing required columns: valor IPTU, quant pavimentos. Similar columns found that will be renamed during transformation: valor cobrado de IPTU -> valor IPTU, quantidade de pavimentos -> quant pavimentos
+WARNING -   - Extra columns with different names matching known mappings (will be renamed during transformation): quantidade de pavimentos -> quant pavimentos, valor cobrado de IPTU -> valor IPTU
+WARNING -   - Found 60 duplicate rows (0.01%)
+INFO - Normalizing column names for year 2023 (engine: pyspark)
+INFO - Handling missing columns for year 2023
+WARNING - [WARN] Found 2 similar column names. Renaming to match common schema: {'quantidade de pavimentos': 'quant pavimentos', 'valor cobrado de IPTU': 'valor IPTU'}
+INFO - Standardizing data types for year 2023
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
+INFO - [OK] Year 2023 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2023
+INFO - Marked year 2023 as completed
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Validating bronze layer for year 2023
+25/11/02 21:40:23 WARN DAGScheduler: Broadcasting large task binary with size 1156.9 KiB
+Unable to map type DateType
+INFO - 
+Processing year 2024 to bronze layer
+INFO - Marked year 2024 as processing
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading JSON file for year 2024: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json (engine: pyspark)
+INFO - [OK] Loaded 2024: 500 rows, 33 columns
+INFO - Starting data quality validation for year 2024
+INFO - [PASS] Validation PASSED for year 2024
+WARNING - [WARN] 4 warnings for year 2024:
+WARNING -   - Column 'ano do exercício' should be integer type
+WARNING -   - Column 'numero' should be numeric type but is object
+WARNING -   - Column 'CEP' should be numeric type but is object
+WARNING -   - Column 'Código Logradouro' should be numeric type but is object
+INFO - Normalizing column names for year 2024 (engine: pyspark)
+INFO - Renamed columns: {'_id': '_id'}
+INFO - Handling missing columns for year 2024
+INFO - Standardizing data types for year 2024
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 25 string columns: ['_id', 'Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro']...
+INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
+INFO - [OK] Year 2024 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2024
+INFO - Marked year 2024 as completed
+INFO - Saving catalog to disk...
+INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Validating bronze layer for year 2024
+25/11/02 21:41:12 WARN DAGScheduler: Broadcasting large task binary with size 1192.2 KiB
+Unable to map type DateType
+INFO - 
+[OK] Bronze layer complete: 5 years cataloged
+INFO - 
+================================================================================
+INFO - [SILVER LAYER] Consolidating Data (All Years)
+INFO - ================================================================================
+INFO - Year 2020: Loaded 403,915 rows, 36 columns from bronze
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 26 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 14 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'bairro', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
+INFO - [OK] Year 2020 processed for silver layer: 403,915 rows, 37 columns
+INFO - Year 2021: Loaded 407,245 rows, 36 columns from bronze
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 26 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 13 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
+INFO - [OK] Year 2021 processed for silver layer: 407,245 rows, 37 columns
+INFO - Year 2022: Loaded 411,090 rows, 36 columns from bronze
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 26 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 13 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
+INFO - [OK] Year 2022 processed for silver layer: 411,090 rows, 37 columns
+INFO - Year 2023: Loaded 415,029 rows, 36 columns from bronze
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 26 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
+INFO - Detected 13 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
+INFO - [OK] Year 2023 processed for silver layer: 415,029 rows, 37 columns
+INFO - Year 2024: Loaded 500 rows, 37 columns from bronze
+INFO - Cleaning and optimizing DataFrame
+INFO - Trimming whitespace from string columns
+INFO - Trimmed 27 string columns: ['_id', 'Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro']...
+INFO - Detected 13 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
+INFO - [OK] Year 2024 processed for silver layer: 500 rows, 38 columns
+INFO - 
+Total rows before concatenation: 1,637,779
+INFO - Number of DataFrames to concatenate: 5
+INFO -
+Consolidating 5 years into silver layer...
+INFO - Silver layer consolidated: 1,637,779 rows, 38 columns
+INFO - [OK] Silver layer saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\silver\iptu_silver_consolidated
+INFO - Validating silver layer (consolidated data - all years)
+INFO - Silver layer contains data from 5 year(s): [2020.0, 2021.0, 2022.0, 2023.0, 2024.0]
+INFO - 
+[Saving legacy paths for backward compatibility]
+INFO - [OK] Saved to legacy path: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\outputs\iptu_consolidated.parquet
+INFO - [OK] Saved to legacy path: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\outputs\iptu_processed.parquet
+INFO - 
+================================================================================
+INFO - [GOLD LAYER] Creating Refined Business-Ready Outputs
+INFO - ================================================================================
+INFO - Creating gold output: Summary by Year and Property Type
+INFO - [OK] Saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\gold_summary_by_year_type
+INFO - Creating gold output: Summary by Neighborhood
+INFO - [OK] Saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\gold_summary_by_neighborhood
+INFO - Creating gold output: Year-over-Year Trends
+INFO - [OK] Saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\gold_year_over_year_trends
+INFO - Validating gold_summary_by_year_type layer
+INFO - Validating gold_summary_by_neighborhood layer
+INFO - Validating gold_year_over_year_trends layer
+INFO - 
+[ANALYSIS] Running Data Analysis
+INFO - --------------------------------------------------------------------------------
+INFO - Initialized analyzer with 1,637,779 rows (engine: pyspark)
+INFO - Generating all analyses
+INFO - Analyzing total volume of properties
+INFO - [OK] Volume analysis complete
+INFO - Analyzing physical distribution of properties
+INFO - [OK] Distribution analysis complete
+INFO - Analyzing tax value trends
+INFO - [OK] Tax value trends analysis complete
+INFO - [OK] All analyses complete
+INFO - Saving analyses to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\total_properties.csv (1 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year.csv (5 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_type.csv (3 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_neighborhood.csv (96 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_type.csv (15 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_neighborhood.csv (425 rows)
+WARNING -   Skipping volume_by_year_neighborhood: unsupported DataFrame type
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_type.csv (3 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_neighborhood_top20.csv (20 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_year.csv (5 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_construction.csv (16 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\top_neighborhoods_by_year.csv (50 rows)
+WARNING -   Skipping top_neighborhoods_by_year: unsupported DataFrame type
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\tax_stats_by_year.csv (5 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\avg_tax_by_neighborhood_top20.csv (20 rows)
+INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\property_value_by_year.csv (5 rows)
+WARNING -   Skipping property_value_by_year: unsupported DataFrame type
+INFO - [OK] All analyses saved
+INFO - [OK] Analysis complete - saved to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses 
+INFO -
+[VALIDATION] Generating Validation Reports
+INFO - --------------------------------------------------------------------------------
+INFO - Validation report saved to outputs\validation_report.csv
+INFO - [OK] Legacy validation report: 5 records
+INFO - [OK] Validation errors table saved: outputs\validation_errors.csv
+INFO - Validation report saved to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\outputs\medallion_validation_report.json
+INFO - [OK] Medallion validation summary: 9/9 passed
+INFO -
+================================================================================
+INFO - Pipeline Complete!
+INFO - ================================================================================
+INFO - Pipeline completed successfully!
+INFO - Consolidated dataset: 1,637,779 rows, 38 columns
+INFO - 
+Generating visualizations from analysis results...
+INFO - Generating all visualizations...
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.png
+INFO - [OK] Generated 8 plots
+INFO - Generating all visualizations...
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
+INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
+n.png
+INFO - [OK] Generated 8 plots
+INFO - [OK] HTML report created: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\visualizations_report.html
+INFO - [OK] Generated 8 plots
+INFO - [OK] HTML report: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\visualizations_report.html
+(neuro-tech) PS C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech> ÊXITO: o processo com PID 355548 (processo filho de PID 356068) foi finalizado.      
+ÊXITO: o processo com PID 356068 (processo filho de PID 356072) foi finalizado.
+ÊXITO: o processo com PID 356072 (processo filho de PID 353416) foi finalizado.
+

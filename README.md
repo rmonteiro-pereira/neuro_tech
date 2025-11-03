@@ -752,12 +752,25 @@ Error: Found invalid character(s) among ' ,;{}()...' in column names
 
 ### Debugging
 
-Enable debug logging:
+Enable debug logging using environment variable:
 
-```python
-import logging
-logging.getLogger("iptu_pipeline").setLevel(logging.DEBUG)
+```bash
+# Linux/Mac
+export IPTU_LOG_LEVEL=DEBUG
+
+# Windows PowerShell
+$env:IPTU_LOG_LEVEL="DEBUG"
+
+# Or in Python code:
+from iptu_pipeline.utils.logger import set_log_level
+set_log_level("DEBUG")
 ```
+
+The logging system is centralized and efficient:
+- Single log file per application run (in `logs/` directory)
+- Console output for immediate feedback
+- File logging with detailed timestamps
+- Hierarchical logger names (e.g., `iptu_pipeline.engine`, `iptu_pipeline.pipelines.main_pipeline`)
 
 View Spark logs:
 

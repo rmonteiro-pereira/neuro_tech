@@ -219,47 +219,128 @@ class IPTUVizualizer:
         return fig
     
     def plot_tax_trends(self, save: bool = True) -> Optional[plt.Figure]:
-        """Plot IPTU tax value trends over time."""
+        """Plot IPTU tax value trends as boxplot by year."""
         if not MATPLOTLIB_AVAILABLE:
             return None
         
-        df = self.load_analysis_data("tax_value_analysis", "tax_stats_by_year.csv")
-        if df.empty:
+        # Load raw data from silver layer for boxplot
+        from iptu_pipeline.config import SILVER_DIR
+        import pandas as pd
+        import numpy as np
+        
+        silver_path = SILVER_DIR / "iptu_silver_consolidated" / "data.parquet"
+        
+        # Load from silver layer (silver should always have correct column names)
+        if not silver_path.exists():
+            logger.error(f"Silver data not found: {silver_path}. Please run the pipeline to generate silver layer.")
             return None
         
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+        try:
+            df = pd.read_parquet(silver_path)
+            
+            # Check if columns are corrupted (UUID column names)
+            if df.columns[0].startswith('col-') and len(df.columns[0]) > 40:
+                logger.error(f"Silver layer has corrupted column names (UUID). Please regenerate the silver layer.")
+                logger.error(f"This indicates a problem during silver layer consolidation. Run the pipeline again.")
+                return None
+            
+            if "valor IPTU" not in df.columns:
+                logger.error(f"Column 'valor IPTU' not found in silver layer. Available columns: {[c for c in df.columns if 'valor' in c.lower() or 'iptu' in c.lower()]}")
+                logger.error(f"Please regenerate the silver layer by running the pipeline.")
+                return None
+        except Exception as e:
+            logger.error(f"Could not load silver data: {e}")
+            return None
         
-        # Check which column name exists (analysis saves as "ano", not "ano do exercício")
-        ano_col = "ano" if "ano" in df.columns else "ano do exercício"
+        valor_iptu_clean = df["valor IPTU"].astype(str).str.replace(
+            ',', '.', regex=False
+        ).str.replace('R$', '', regex=False).str.strip()
+        df["valor_iptu_numeric"] = pd.to_numeric(valor_iptu_clean, errors='coerce')
         
-        # Tax value trends
-        ax1.plot(df[ano_col], df["media"], marker='o', linewidth=2, 
-                markersize=8, label='Média', color='steelblue')
-        ax1.plot(df[ano_col], df["mediana"], marker='s', linewidth=2, 
-                markersize=8, label='Mediana', color='coral', linestyle='--')
-        ax1.fill_between(df[ano_col], df["minimo"], df["maximo"], 
-                         alpha=0.2, label='Min-Max', color='lightblue')
-        ax1.set_xlabel("Ano", fontsize=12, fontweight='bold')
-        ax1.set_ylabel("Valor IPTU (R$)", fontsize=12, fontweight='bold')
-        ax1.set_title("Tendência de Valores de IPTU por Ano", fontsize=14, fontweight='bold', pad=20)
-        ax1.legend(frameon=True, shadow=True, loc='best')
-        ax1.grid(alpha=0.3)
-        ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
+        # Filter only positive values for boxplot
+        df = df[df["valor_iptu_numeric"].notna() & (df["valor_iptu_numeric"] > 0)]
         
-        # Total tax by year
-        bars = ax2.bar(df[ano_col], df["total"], color='mediumseagreen', alpha=0.7)
-        ax2.set_xlabel("Ano", fontsize=12, fontweight='bold')
-        ax2.set_ylabel("Total Arrecadado (R$)", fontsize=12, fontweight='bold')
-        ax2.set_title("Total de IPTU Arrecadado por Ano", fontsize=14, fontweight='bold', pad=20)
-        ax2.grid(axis='y', alpha=0.3)
-        ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x/1e9:.2f}B' if x >= 1e9 else f'R$ {x/1e6:.1f}M'))
+        # Get year column
+        if "ano do exercício" in df.columns:
+            df["ano"] = pd.to_numeric(df["ano do exercício"], errors='coerce')
+        elif "ano" in df.columns:
+            df["ano"] = pd.to_numeric(df["ano"], errors='coerce')
+        else:
+            logger.warning("No year column found")
+            return None
         
-        # Add value labels
-        for bar in bars:
-            height = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2., height,
-                   f'R${height/1e9:.2f}B' if height >= 1e9 else f'R${height/1e6:.1f}M',
-                   ha='center', va='bottom', fontweight='bold', fontsize=9)
+        df = df.dropna(subset=["ano", "valor_iptu_numeric"])
+        
+        if df.empty:
+            logger.warning("No valid data for boxplot")
+            return None
+        
+        # Prepare boxplot data (one array per year)
+        years = sorted(df["ano"].unique())
+        box_data = [df[df["ano"] == year]["valor_iptu_numeric"].values for year in years]
+        
+        if not box_data or all(len(data) == 0 for data in box_data):
+            logger.warning("No data to plot")
+            return None
+        
+        # Create figure with boxplot
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Filter extreme outliers using IQR method before creating boxplot
+        filtered_box_data = []
+        for year_data in box_data:
+            if len(year_data) == 0:
+                filtered_box_data.append(year_data)
+                continue
+            
+            # Calculate IQR
+            q1 = np.percentile(year_data, 25)
+            q3 = np.percentile(year_data, 75)
+            iqr = q3 - q1
+            
+            # Filter outliers (values beyond 3*IQR from Q1/Q3)
+            lower_bound = q1 - 3 * iqr
+            upper_bound = q3 + 3 * iqr
+            
+            filtered_data = year_data[(year_data >= lower_bound) & (year_data <= upper_bound)]
+            filtered_box_data.append(filtered_data)
+        
+        # Create boxplot with filtered data (whiskers at 1st and 99th percentile)
+        bp = ax.boxplot(filtered_box_data, labels=[int(y) for y in years], 
+                       patch_artist=True, showmeans=True,
+                       meanline=False, whis=[1, 99])
+        
+        # Customize colors
+        colors = sns.color_palette("Set2", len(bp['boxes']))
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.7)
+            patch.set_edgecolor('darkblue')
+            patch.set_linewidth(1.5)
+        
+        # Customize other elements
+        for element in ['whiskers', 'fliers', 'means', 'medians', 'caps']:
+            if element in bp:
+                for item in bp[element]:
+                    item.set_color('darkblue')
+                    item.set_linewidth(1.5)
+        
+        # Use log scale if data has large range
+        max_val = df["valor_iptu_numeric"].max()
+        median_val = df["valor_iptu_numeric"].median()
+        if max_val > median_val * 50:
+            ax.set_yscale('log')
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(
+                lambda x, p: f'R${x/1e3:.0f}k' if x < 1e6 else f'R${x/1e6:.1f}M'
+            ))
+        else:
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
+        
+        ax.set_xlabel("Ano", fontsize=12, fontweight='bold')
+        ax.set_ylabel("Valor IPTU (R$)", fontsize=12, fontweight='bold')
+        ax.set_title("Distribuição de Valores de IPTU por Ano (Boxplot)\n(Apenas valores não-zero)", 
+                     fontsize=14, fontweight='bold', pad=20)
+        ax.grid(axis='y', alpha=0.3)
         
         plt.tight_layout()
         
@@ -419,6 +500,7 @@ class IPTUVizualizer:
     
     def create_summary_report_html(self) -> Path:
         """Create HTML report with all plots embedded."""
+        import pandas as pd
         plots = self.generate_all_plots(close_figs=False)
         
         html_content = """
@@ -430,10 +512,16 @@ class IPTUVizualizer:
                 body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
                 .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
                 h1 { color: #2c3e50; text-align: center; }
+                h2 { color: #34495e; margin-top: 40px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
                 .plot-section { margin: 30px 0; border-bottom: 2px solid #ecf0f1; padding-bottom: 20px; }
                 .plot-section:last-child { border-bottom: none; }
                 img { max-width: 100%; height: auto; display: block; margin: 20px auto; }
                 .plot-title { font-size: 18px; font-weight: bold; color: #34495e; margin-bottom: 10px; }
+                .analysis-section { margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #3498db; }
+                .analysis-title { font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+                th { background-color: #3498db; color: white; }
             </style>
         </head>
         <body>
@@ -441,19 +529,22 @@ class IPTUVizualizer:
                 <h1>IPTU Data Analysis - Visualizations Report</h1>
         """
         
+        # Volume Analysis Section
+        html_content += """
+                <h2>1. Análise de Volume</h2>
+        """
+        
         plot_titles = {
             "volume_by_year": "Total de Imóveis por Ano",
             "volume_by_type": "Distribuição por Tipo de Uso",
             "top_neighborhoods": "Top Bairros por Volume",
             "volume_by_year_type": "Evolução por Ano e Tipo",
-            "tax_trends": "Tendências de Valores de IPTU",
-            "top_tax_neighborhoods": "Bairros com Maiores Valores de IPTU",
             "distribution_by_construction": "Distribuição por Tipo de Construção",
             "temporal_distribution": "Distribuição Temporal"
         }
         
         for plot_name, fig in plots.items():
-            if fig is not None:
+            if plot_name in plot_titles and fig is not None:
                 plot_path = self.plots_output_path / f"{plot_name}.png"
                 if plot_path.exists():
                     html_content += f"""
@@ -462,6 +553,134 @@ class IPTUVizualizer:
                         <img src="{plot_path.name}" alt="{plot_name}">
                     </div>
                     """
+        
+        # Tax Value Analysis Section
+        html_content += """
+                <h2>2. Análise de Valores de IPTU</h2>
+        """
+        
+        tax_plot_titles = {
+            "tax_trends": "Tendências de Valores de IPTU (Boxplot)",
+            "top_tax_neighborhoods": "Bairros com Maiores Valores de IPTU"
+        }
+        
+        for plot_name, fig in plots.items():
+            if plot_name in tax_plot_titles and fig is not None:
+                plot_path = self.plots_output_path / f"{plot_name}.png"
+                if plot_path.exists():
+                    html_content += f"""
+                    <div class="plot-section">
+                        <div class="plot-title">{tax_plot_titles.get(plot_name, plot_name)}</div>
+                        <img src="{plot_path.name}" alt="{plot_name}">
+                    </div>
+                    """
+        
+        # Age Analysis Section
+        html_content += """
+                <h2>3. Análise de Idade de Construção</h2>
+        """
+        
+        # Load and display age analysis data
+        age_dist_file = self.analysis_path / "age_analysis" / "age_distribution_by_range.csv"
+        if age_dist_file.exists():
+            age_df = pd.read_csv(age_dist_file)
+            html_content += """
+                    <div class="analysis-section">
+                        <div class="analysis-title">Distribuição por Faixas de Idade de Construção</div>
+                        <table>
+                            <tr><th>Faixa de Idade</th><th>Quantidade</th><th>Percentual</th></tr>
+            """
+            for _, row in age_df.head(10).iterrows():
+                html_content += f"""
+                            <tr>
+                                <td>{row.get('faixa_idade', 'N/A')}</td>
+                                <td>{row.get('quantidade', 0):,}</td>
+                                <td>{row.get('percentual', 0):.2f}%</td>
+                            </tr>
+                """
+            html_content += """
+                        </table>
+                    </div>
+            """
+        
+        # Age-Value Relationship Section
+        html_content += """
+                <h2>4. Relação entre Idade e Valor</h2>
+        """
+        
+        age_value_file = self.analysis_path / "age_value_analysis" / "age_value_relationship.csv"
+        if age_value_file.exists():
+            age_value_df = pd.read_csv(age_value_file)
+            html_content += """
+                    <div class="analysis-section">
+                        <div class="analysis-title">Valor Médio de IPTU por Faixa de Idade</div>
+                        <table>
+                            <tr><th>Faixa de Idade</th><th>Valor Médio (R$)</th><th>Quantidade</th></tr>
+            """
+            for _, row in age_value_df.iterrows():
+                valor = row.get('valor_medio', 0)
+                html_content += f"""
+                            <tr>
+                                <td>{row.get('faixa_idade', 'N/A')}</td>
+                                <td>R$ {valor:,.2f}</td>
+                                <td>{row.get('quantidade', 0):,}</td>
+                            </tr>
+                """
+            html_content += """
+                        </table>
+                    </div>
+            """
+        
+        # Evolution Analysis Section
+        html_content += """
+                <h2>5. Análise de Evolução de Bairros</h2>
+        """
+        
+        evolution_file = self.analysis_path / "evolution_analysis" / "top_growth_quantity.csv"
+        if evolution_file.exists():
+            evolution_df = pd.read_csv(evolution_file)
+            html_content += """
+                    <div class="analysis-section">
+                        <div class="analysis-title">Top 10 Bairros com Maior Crescimento em Número de Imóveis</div>
+                        <table>
+                            <tr><th>Bairro</th><th>Quantidade Inicial</th><th>Quantidade Final</th><th>Crescimento (%)</th></tr>
+            """
+            for _, row in evolution_df.head(10).iterrows():
+                html_content += f"""
+                            <tr>
+                                <td>{row.get('bairro', 'N/A')}</td>
+                                <td>{row.get('quantidade_inicial', 0):,}</td>
+                                <td>{row.get('quantidade_final', 0):,}</td>
+                                <td>{row.get('crescimento_quantidade', 0):.2f}%</td>
+                            </tr>
+                """
+            html_content += """
+                        </table>
+                    </div>
+            """
+        
+        evolution_value_file = self.analysis_path / "evolution_analysis" / "top_growth_value.csv"
+        if evolution_value_file.exists():
+            evolution_value_df = pd.read_csv(evolution_value_file)
+            html_content += """
+                    <div class="analysis-section">
+                        <div class="analysis-title">Top 10 Bairros com Maior Crescimento em Valor Médio</div>
+                        <table>
+                            <tr><th>Bairro</th><th>Valor Médio Inicial (R$)</th><th>Valor Médio Final (R$)</th><th>Crescimento (%)</th></tr>
+            """
+            for _, row in evolution_value_df.head(10).iterrows():
+                html_content += f"""
+                            <tr>
+                                <td>{row.get('bairro', 'N/A')}</td>
+                                <td>R$ {row.get('valor_medio_inicial', 0):,.2f}</td>
+                                <td>R$ {row.get('valor_medio_final', 0):,.2f}</td>
+                                <td>{row.get('crescimento_valor', 0):.2f}%</td>
+                            </tr>
+                """
+            html_content += """
+                        </table>
+                    </div>
+            """
         
         html_content += """
             </div>
