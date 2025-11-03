@@ -65,7 +65,12 @@ class DataEngine:
             os.environ["SPARK_VERSION"] = "3.5"  # Default for Spark 3.5.x, will refine if needed
         
         # Check if running in Docker/cluster mode
-        spark_master = os.getenv("SPARK_MASTER", "local[*]")
+        # Use SPARK_MASTER_URL if set (from docker-compose), otherwise check SPARK_MASTER, fallback to local
+        spark_master = os.getenv("SPARK_MASTER_URL") or os.getenv("SPARK_MASTER", "local[*]")
+        
+        # In Docker, prefer connecting to Spark cluster
+        if "SPARK_MASTER_URL" in os.environ:
+            logger.info(f"Connecting to Spark cluster: {spark_master}")
         
         # Configure Python path for Spark workers (use venv Python if available)
         python_executable = sys.executable
@@ -76,20 +81,25 @@ class DataEngine:
         
         builder = SparkSession.builder \
             .appName("IPTU_Pipeline") \
+            .master(spark_master) \
             .config("spark.sql.adaptive.enabled", "true") \
             .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
             .config("spark.sql.adaptive.skewJoin.enabled", "true") \
-            .config("spark.driver.memory", "16g") \
-            .config("spark.executor.memory", "16g") \
+            .config("spark.driver.memory", "2g") \
+            .config("spark.executor.memory", "2g") \
             .config("spark.sql.shuffle.partitions", "200") \
             .config("spark.sql.warehouse.dir", str(Path(__file__).parent.parent.parent / "spark-warehouse")) \
             .config("spark.pyspark.python", python_executable) \
             .config("spark.pyspark.driver.python", python_executable) \
-            .config("spark.driver.host", "localhost") \
-            .config("spark.driver.bindAddress", "127.0.0.1") \
             .config("spark.network.timeout", "600s") \
             .config("spark.sql.execution.arrow.pyspark.enabled", "false") \
             .config("spark.sql.debug.maxToStringFields", "200")
+        
+        # Only set driver host/bind for local mode
+        if spark_master.startswith("local"):
+            builder = builder \
+                .config("spark.driver.host", "localhost") \
+                .config("spark.driver.bindAddress", "127.0.0.1")
         
         # Set default SPARK_VERSION for PyDeequ (will be refined after session creation)
         # PyDeequ needs this before importing to determine which JARs to use
@@ -347,20 +357,36 @@ class DataEngine:
             return df.groupby(by)
     
     def concat(self, dataframes: list) -> Union[pd.DataFrame, SparkDataFrame]:
-        """Concatenate multiple DataFrames with schema alignment."""
+        """
+        Concatenate multiple DataFrames with schema alignment.
+        
+        For Pandas: Uses pd.concat with proper column alignment to prevent duplication.
+        For PySpark: Uses unionByName for schema evolution.
+        """
         if self.engine_type == "pyspark":
             if not PYSPARK_AVAILABLE:
                 raise RuntimeError("PySpark is not available")
             
             # Convert all to Spark if needed
             spark_dfs = []
-            for df in dataframes:
+            total_rows = 0
+            for i, df in enumerate(dataframes):
                 if isinstance(df, pd.DataFrame):
-                    spark_dfs.append(self.spark.createDataFrame(df))
+                    rows = len(df)
+                    spark_df = self.spark.createDataFrame(df)
+                    spark_dfs.append(spark_df)
                 elif isinstance(df, SparkDataFrame):
+                    rows = df.count()
                     spark_dfs.append(df)
                 else:
-                    spark_dfs.append(self.spark.createDataFrame(df))
+                    rows = len(df) if hasattr(df, '__len__') else 0
+                    spark_df = self.spark.createDataFrame(df)
+                    spark_dfs.append(spark_df)
+                
+                total_rows += rows
+                logger.debug(f"DataFrame {i}: {rows:,} rows, {len(df.columns) if hasattr(df, 'columns') else 'N/A'} columns")
+            
+            logger.debug(f"Total rows before PySpark concat: {total_rows:,}")
             
             # Use unionByName with allowMissingColumns=True for schema evolution
             # This handles different schemas across years without manual alignment
@@ -368,9 +394,65 @@ class DataEngine:
             for df in spark_dfs[1:]:
                 result = result.unionByName(df, allowMissingColumns=True)
             
+            result_rows = result.count()
+            if result_rows != total_rows:
+                logger.warning(f"Row count changed during PySpark concat: {total_rows:,} -> {result_rows:,}")
+            
             return result
         else:
-            return pd.concat(dataframes, ignore_index=True)
+            # Pandas concat with proper schema alignment
+            if not dataframes:
+                raise ValueError("Cannot concatenate empty list of DataFrames")
+            
+            if len(dataframes) == 1:
+                return dataframes[0].copy()
+            
+            # Log row counts before concatenation
+            total_rows = sum(len(df) for df in dataframes)
+            logger.debug(f"Total rows before Pandas concat: {total_rows:,} from {len(dataframes)} DataFrames")
+            
+            # Get all unique columns across all DataFrames
+            all_columns = set()
+            for df in dataframes:
+                all_columns.update(df.columns.tolist())
+            all_columns = sorted(list(all_columns))
+            
+            logger.debug(f"Total unique columns to align: {len(all_columns)}")
+            
+            # Ensure each DataFrame has all columns (missing columns become NaN)
+            # This prevents pandas from creating duplicate columns
+            aligned_dfs = []
+            for i, df in enumerate(dataframes):
+                # Check for duplicate columns BEFORE alignment
+                if df.columns.duplicated().any():
+                    dup = df.columns[df.columns.duplicated()].unique()
+                    raise ValueError(f"DataFrame {i} has duplicate columns before concat: {dup.tolist()}")
+                
+                # Reindex to ensure all columns exist (missing become NaN)
+                df_aligned = df.reindex(columns=all_columns, copy=False)
+                aligned_dfs.append(df_aligned)
+                
+                logger.debug(f"DataFrame {i}: {len(df):,} rows, {len(df.columns)} -> {len(df_aligned.columns)} columns after alignment")
+            
+            # Concatenate with ignore_index to create new sequential index
+            # sort=False to maintain column order (faster)
+            result = pd.concat(aligned_dfs, ignore_index=True, sort=False)
+            
+            # Validate result
+            result_rows = len(result)
+            if result_rows != total_rows:
+                ratio = result_rows / total_rows if total_rows > 0 else 0
+                logger.error(f"⚠️  Row count mismatch after concat: expected {total_rows:,}, got {result_rows:,} ({ratio:.2f}x)")
+                logger.error(f"   This suggests duplication during concatenation!")
+                logger.error(f"   Check for duplicate columns or alignment issues")
+            
+            # Verify no duplicate columns in result
+            if result.columns.duplicated().any():
+                dup = result.columns[result.columns.duplicated()].unique()
+                raise ValueError(f"Duplicate columns in concatenated result: {dup.tolist()}")
+            
+            logger.debug(f"Concatenation complete: {result_rows:,} rows, {len(result.columns)} columns")
+            return result
     
     def stop_spark(self):
         """Stop Spark session if using PySpark."""

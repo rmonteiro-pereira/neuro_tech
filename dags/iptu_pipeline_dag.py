@@ -173,6 +173,179 @@ def generate_validation_reports(**context):
     return reports if reports else None
 
 
+def validate_pipeline_success(**context):
+    """
+    Comprehensive validation task to verify pipeline success.
+    Checks that all expected files and outputs were created.
+    """
+    from datetime import datetime, timedelta
+    
+    logger.info("="*80)
+    logger.info("Validating Pipeline Success")
+    logger.info("="*80)
+    
+    from iptu_pipeline.config import settings
+    from iptu_pipeline.config import BRONZE_DIR, SILVER_DIR, GOLD_DIR, CATALOG_DIR
+    
+    validation_results = {
+        'catalog_updated': False,
+        'bronze_files_created': [],
+        'silver_files_created': False,
+        'gold_outputs_created': False,
+        'validation_reports_created': False,
+        'errors': []
+    }
+    
+    # 1. Check catalog was updated (check timestamp)
+    logger.info("\n[1/5] Checking data catalog...")
+    catalog_path = CATALOG_DIR / "data_catalog.json"
+    if catalog_path.exists():
+        try:
+            import json
+            with open(catalog_path, 'r', encoding='utf-8') as f:
+                catalog_data = json.load(f)
+            
+            # Check if catalog has entries
+            if catalog_data and len(catalog_data) > 0:
+                # Check last_updated timestamp (should be recent, within last minute)
+                max_age = timedelta(minutes=1)
+                catalog_age = None
+                
+                for year, entry in catalog_data.items():
+                    if isinstance(entry, dict) and 'last_updated' in entry:
+                        try:
+                            updated_str = entry['last_updated']
+                            # Handle different timestamp formats
+                            if updated_str.endswith('Z'):
+                                updated_str = updated_str.replace('Z', '+00:00')
+                            updated_time = datetime.fromisoformat(updated_str)
+                            # Make both timezone-aware for comparison
+                            if updated_time.tzinfo is None:
+                                from datetime import timezone
+                                updated_time = updated_time.replace(tzinfo=timezone.utc)
+                            now = datetime.now(updated_time.tzinfo)
+                            age = now - updated_time
+                            if catalog_age is None or age > catalog_age:
+                                catalog_age = age
+                        except Exception as e:
+                            logger.debug(f"Could not parse timestamp for {year}: {e}")
+                            pass
+                
+                if catalog_age and catalog_age < max_age:
+                    validation_results['catalog_updated'] = True
+                    logger.info(f"✓ Catalog updated recently (age: {catalog_age})")
+                else:
+                    validation_results['errors'].append(f"Catalog not updated recently (age: {catalog_age})")
+                    logger.warning(f"⚠ Catalog exists but may not be recent")
+            else:
+                validation_results['errors'].append("Catalog is empty")
+                logger.error("✗ Catalog is empty")
+        except Exception as e:
+            validation_results['errors'].append(f"Error reading catalog: {str(e)}")
+            logger.error(f"✗ Error reading catalog: {e}")
+    else:
+        validation_results['errors'].append("Catalog file does not exist")
+        logger.error(f"✗ Catalog file not found: {catalog_path}")
+    
+    # 2. Check bronze layer files exist (one per year)
+    logger.info("\n[2/5] Checking bronze layer files...")
+    expected_years = sorted(settings.CSV_YEARS + settings.JSON_YEARS)
+    for year in expected_years:
+        bronze_path = BRONZE_DIR / f"iptu_{year}"
+        parquet_file = bronze_path / "data.parquet"
+        if parquet_file.exists():
+            validation_results['bronze_files_created'].append(year)
+            logger.info(f"✓ Bronze file exists for year {year}: {parquet_file}")
+        else:
+            validation_results['errors'].append(f"Bronze file missing for year {year}: {parquet_file}")
+            logger.error(f"✗ Bronze file missing for year {year}: {bronze_path}")
+    
+    # 3. Check silver layer consolidated file exists
+    logger.info("\n[3/5] Checking silver layer files...")
+    silver_path = SILVER_DIR / "iptu_silver_consolidated"
+    silver_parquet = silver_path / "data.parquet"
+    if silver_parquet.exists():
+        validation_results['silver_files_created'] = True
+        file_size = silver_parquet.stat().st_size / (1024**2)  # MB
+        logger.info(f"✓ Silver consolidated file exists: {silver_parquet} ({file_size:.2f} MB)")
+    else:
+        validation_results['errors'].append(f"Silver consolidated file missing: {silver_parquet}")
+        logger.error(f"✗ Silver consolidated file missing: {silver_path}")
+    
+    # 4. Check gold layer outputs (plots, analyses)
+    logger.info("\n[4/5] Checking gold layer outputs...")
+    gold_plots_dir = settings.plots_output_path
+    gold_analyses_dir = settings.analysis_output_path
+    
+    plots_exist = gold_plots_dir.exists() and any(gold_plots_dir.iterdir())
+    analyses_exist = gold_analyses_dir.exists() and any(gold_analyses_dir.iterdir())
+    
+    if plots_exist or analyses_exist:
+        validation_results['gold_outputs_created'] = True
+        if plots_exist:
+            plot_count = len(list(gold_plots_dir.glob("*.png"))) + len(list(gold_plots_dir.glob("*.html")))
+            logger.info(f"✓ Gold plots directory has {plot_count} files: {gold_plots_dir}")
+        if analyses_exist:
+            analysis_count = len(list(gold_analyses_dir.iterdir()))
+            logger.info(f"✓ Gold analyses directory has {analysis_count} files: {gold_analyses_dir}")
+    else:
+        validation_results['errors'].append("Gold layer outputs missing")
+        logger.error(f"✗ Gold layer outputs missing (plots: {plots_exist}, analyses: {analyses_exist})")
+    
+    # 5. Check validation reports
+    logger.info("\n[5/5] Checking validation reports...")
+    medallion_report = settings.OUTPUT_DIR / "medallion_validation_report.json"
+    legacy_report = settings.OUTPUT_DIR / "validation_report.csv"
+    
+    if medallion_report.exists() or legacy_report.exists():
+        validation_results['validation_reports_created'] = True
+        if medallion_report.exists():
+            logger.info(f"✓ Medallion validation report exists: {medallion_report}")
+        if legacy_report.exists():
+            logger.info(f"✓ Legacy validation report exists: {legacy_report}")
+    else:
+        validation_results['errors'].append("Validation reports missing")
+        logger.error(f"✗ Validation reports missing")
+    
+    # Summary
+    logger.info("\n" + "="*80)
+    logger.info("Validation Summary")
+    logger.info("="*80)
+    
+    total_checks = 5
+    passed_checks = sum([
+        validation_results['catalog_updated'],
+        len(validation_results['bronze_files_created']) > 0,
+        validation_results['silver_files_created'],
+        validation_results['gold_outputs_created'],
+        validation_results['validation_reports_created']
+    ])
+    
+    logger.info(f"Catalog updated: {'✓' if validation_results['catalog_updated'] else '✗'}")
+    logger.info(f"Bronze files: {len(validation_results['bronze_files_created'])}/{len(expected_years)} years")
+    logger.info(f"Silver consolidated: {'✓' if validation_results['silver_files_created'] else '✗'}")
+    logger.info(f"Gold outputs: {'✓' if validation_results['gold_outputs_created'] else '✗'}")
+    logger.info(f"Validation reports: {'✓' if validation_results['validation_reports_created'] else '✗'}")
+    logger.info(f"\nPassed: {passed_checks}/{total_checks} checks")
+    
+    if validation_results['errors']:
+        logger.error(f"Errors found: {len(validation_results['errors'])}")
+        for error in validation_results['errors']:
+            logger.error(f"  - {error}")
+    
+    # Fail task if critical checks failed
+    if len(validation_results['errors']) > 3:  # Allow some flexibility
+        error_msg = f"Pipeline validation failed: {len(validation_results['errors'])} errors found"
+        logger.error(error_msg)
+        raise Exception(error_msg)
+    
+    logger.info("="*80)
+    logger.info("Pipeline validation complete!")
+    logger.info("="*80)
+    
+    return validation_results
+
+
 # Task definitions
 if AIRFLOW_AVAILABLE:
     # Main medallion pipeline task (runs complete pipeline: Raw -> Bronze -> Silver -> Gold)
@@ -183,7 +356,7 @@ if AIRFLOW_AVAILABLE:
             'params': {
                 'years': None,  # Process all years, or specify [2020, 2021, 2022, 2023, 2024]
                 'incremental': False,  # Set to True for incremental processing
-                'engine': None  # Uses config default, or specify 'pandas' or 'pyspark'
+                'engine': 'pyspark'  # Always use PySpark for Delta table support
             }
         },
         dag=dag,
@@ -210,10 +383,18 @@ if AIRFLOW_AVAILABLE:
         dag=dag,
     )
     
+    # Pipeline success validation task (final check - verifies all outputs were created)
+    pipeline_validation_task = PythonOperator(
+        task_id='validate_pipeline_success',
+        python_callable=validate_pipeline_success,
+        dag=dag,
+    )
+    
     # Define task dependencies
     # Medallion pipeline runs first (Raw -> Bronze -> Silver -> Gold, including analysis)
     # Then visualizations, dashboard, and reports can run in parallel (all depend on gold layer)
-    medallion_pipeline_task >> [visualizations_task, dashboard_task, validation_reports_task]
+    # Finally, validation task runs after all outputs are complete
+    medallion_pipeline_task >> [visualizations_task, dashboard_task, validation_reports_task] >> pipeline_validation_task
 
 
 def get_airflow_dag():

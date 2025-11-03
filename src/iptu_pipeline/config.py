@@ -4,7 +4,22 @@ Configuration module for IPTU pipeline using Pydantic Settings.
 from pathlib import Path
 from typing import Dict, List
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Handle pydantic_settings import with fallback
+try:
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+except ImportError:
+    # Fallback for environments where pydantic-settings isn't installed
+    # Try to use pydantic's BaseSettings directly (older versions)
+    try:
+        from pydantic import BaseSettings, BaseConfig
+        # Create SettingsConfigDict as an alias for compatibility
+        SettingsConfigDict = BaseConfig
+    except ImportError:
+        # Last resort: raise with helpful error
+        raise ImportError(
+            "pydantic-settings is required. Install it with: pip install pydantic-settings"
+        )
 
 
 class Settings(BaseSettings):
