@@ -61,6 +61,8 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__FERNET_KEY=''
+      # JAVA_HOME will be set dynamically by startup script
+    user: "0:0"  # Run as root to install Java
     volumes:
       - ./requirements.txt:/opt/airflow/requirements.txt
       - ./requirements-pyspark.txt:/opt/airflow/requirements-pyspark.txt
@@ -69,10 +71,38 @@ services:
     command:
       - -c
       - |
+        # Install Java (requires root)
+        apt-get update -qq && \
+        apt-get install -y -qq openjdk-11-jre-headless && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
+        export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+        # Fix permissions
+        chown -R airflow:root /opt/airflow
         chmod +x /opt/airflow/install-requirements.sh
-        /opt/airflow/install-requirements.sh
-        airflow db init
-        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+        # Set PYTHONPATH for user-installed packages (before switching user)
+        export PYTHONUSERBASE=/home/airflow/.local
+        export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages
+        # Switch to airflow user using gosu or runuser (no password needed)
+        if command -v gosu &> /dev/null; then
+          gosu airflow bash -c 'export PYTHONUSERBASE=/home/airflow/.local && export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && /opt/airflow/install-requirements.sh'
+          gosu airflow bash -c 'export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && airflow db init'
+          gosu airflow bash -c 'export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin'
+          gosu airflow bash -c 'export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && airflow pools set default_pool 128 "Default pool" || true'
+        elif command -v runuser &> /dev/null; then
+          runuser -u airflow -- bash -c 'export PYTHONUSERBASE=/home/airflow/.local && export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && /opt/airflow/install-requirements.sh'
+          runuser -u airflow -- bash -c 'export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && airflow db init'
+          runuser -u airflow -- bash -c 'export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin'
+          runuser -u airflow -- bash -c 'export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && airflow pools set default_pool 128 "Default pool" || true'
+        else
+          # Fallback: install packages as root (Airflow will warn but should work)
+          echo "Warning: No user switching tool found, installing as root"
+          /opt/airflow/install-requirements.sh || pip install --break-system-packages --no-cache-dir -r /opt/airflow/requirements.txt
+          chown -R airflow:root /opt/airflow
+          su -s /bin/bash airflow -c "airflow db init"
+          su -s /bin/bash airflow -c "airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin"
+          su -s /bin/bash airflow -c "airflow pools set default_pool 128 'Default pool' || true"
+        fi
     networks:
       - iptu-network
 
@@ -92,7 +122,12 @@ services:
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - AIRFLOW__CORE__DEFAULT_POOL_SIZE=128
       - SPARK_MASTER_URL=spark://spark-master:7077
+      # JAVA_HOME will be set dynamically by startup script
+      - PYTHONUSERBASE=/home/airflow/.local
+      - PYTHONNOUSERSITE=0
+      - PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages
       - SKIP_PYSPARK=true
     volumes:
       - ./dags:/opt/airflow/dags
@@ -104,12 +139,123 @@ services:
       - ./requirements.txt:/opt/airflow/requirements.txt
       - ./requirements-pyspark.txt:/opt/airflow/requirements-pyspark.txt
       - ./install-requirements.sh:/opt/airflow/install-requirements.sh
+    user: "0:0"  # Run as root initially to install Java, then switch to airflow
     entrypoint: /bin/bash
     command:
       - -c
       - |
+        # IMPORTANT: Unset any JAVA_HOME from host (could be Windows path)
+        unset JAVA_HOME
+        
+        # Install Java (run as root initially)
+        echo "Checking for Java installation..."
+        if ! command -v java &> /dev/null || ! java -version &> /dev/null; then
+          echo "Installing Java..."
+          apt-get update -qq
+          # Try different package names - default-jre-headless is most universally available
+          if apt-get install -y -qq default-jre-headless 2>/dev/null; then
+            echo "Java installed via default-jre-headless"
+          elif apt-get install -y -qq openjdk-11-jre-headless 2>/dev/null; then
+            echo "Java 11 installed via openjdk-11-jre-headless"
+          elif apt-get install -y -qq openjdk-17-jre-headless 2>/dev/null; then
+            echo "Java 17 installed via openjdk-17-jre-headless"
+          elif apt-get install -y -qq openjdk-11-jdk-headless 2>/dev/null; then
+            echo "Java 11 installed via openjdk-11-jdk-headless"
+          else
+            echo "ERROR: Failed to install Java - trying to find existing installation..."
+            # Check if Java might already be installed
+            if find /usr -name java 2>/dev/null | grep -q java; then
+              echo "Java found in system, using existing installation"
+            else
+              echo "ERROR: No Java installation found and installation failed"
+              exit 1
+            fi
+          fi
+          apt-get clean && rm -rf /var/lib/apt/lists/*
+          echo "Java installation completed"
+        else
+          echo "Java already installed"
+        fi
+        # Find Java installation directory (can vary by image and package)
+        # Prioritize Java 17 since that's what default-jre-headless installs on Debian 12
+        if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ] && [ -f "/usr/lib/jvm/java-17-openjdk-amd64/bin/java" ]; then
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+        elif [ -d "/usr/lib/jvm/java-11-openjdk-amd64" ] && [ -f "/usr/lib/jvm/java-11-openjdk-amd64/bin/java" ]; then
+          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+        elif [ -d "/usr/lib/jvm/java-11-openjdk" ] && [ -f "/usr/lib/jvm/java-11-openjdk/bin/java" ]; then
+          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+        elif [ -d "/usr/lib/jvm/default-java" ] && [ -f "/usr/lib/jvm/default-java/bin/java" ]; then
+          export JAVA_HOME="/usr/lib/jvm/default-java"
+          # default-java is usually a symlink, resolve it
+          if [ -L "$$JAVA_HOME" ]; then
+            JAVA_HOME=$$(readlink -f "$$JAVA_HOME")
+          fi
+          export JAVA_HOME
+        else
+          # Find any Java installation
+            JAVA_HOME=$$(find /usr/lib/jvm -maxdepth 1 -type d \( -name "java-*" -o -name "default-java" \) 2>/dev/null | head -1)
+            if [ -z "$$JAVA_HOME" ] || [ ! -f "$$JAVA_HOME/bin/java" ]; then
+            # Last resort: use java command to find JAVA_HOME (only if it's a Linux path)
+            JAVA_PATH=$$(which java 2>/dev/null)
+            if [ -n "$$JAVA_PATH" ] && [ "$$JAVA_PATH" != "$${JAVA_PATH#/}" ]; then
+              # Only proceed if it's an absolute Linux path (starts with /)
+              JAVA_HOME=$$(readlink -f "$$JAVA_PATH" 2>/dev/null | sed "s:/bin/java::")
+              if [ -z "$$JAVA_HOME" ] || [ ! -d "$$JAVA_HOME" ] || [ "$$JAVA_HOME" != "$${JAVA_HOME#/}" ]; then
+                JAVA_HOME=""
+              fi
+            fi
+            if [ -z "$$JAVA_HOME" ] || [ ! -f "$$JAVA_HOME/bin/java" ]; then
+              echo "ERROR: Java installation not found after installation!"
+              echo "Searched in /usr/lib/jvm"
+              echo "Available java: $$(which java 2>/dev/null || echo 'not found')"
+              exit 1
+            fi
+          fi
+          export JAVA_HOME
+        fi
+        # Verify Java is accessible
+        if [ ! -f "$$JAVA_HOME/bin/java" ]; then
+          echo "ERROR: Java binary not found at $$JAVA_HOME/bin/java"
+          echo "Java was installed but cannot be found. Checking system..."
+          ls -la /usr/lib/jvm/ 2>/dev/null || echo "JVM directory not found"
+          which java 2>/dev/null || echo "java not in PATH"
+          exit 1
+        fi
+        # Verify it's a Linux path, not Windows (must start with /)
+        if [ "$$JAVA_HOME" != "$${JAVA_HOME#/}" ]; then
+          # It's a Linux path, good!
+          :
+        else
+          echo "ERROR: JAVA_HOME is not a Linux path: $$JAVA_HOME"
+          echo "This should not happen. Searching for correct Linux path..."
+          JAVA_HOME=$$(find /usr/lib/jvm -maxdepth 1 -type d \( -name "java-*" -o -name "default-java" \) 2>/dev/null | head -1)
+          if [ -z "$$JAVA_HOME" ] || [ ! -f "$$JAVA_HOME/bin/java" ]; then
+            echo "ERROR: Could not find valid Linux Java installation"
+            echo "Contents of /usr/lib/jvm:"
+            ls -la /usr/lib/jvm/ 2>/dev/null || echo "Directory not found"
+            exit 1
+          fi
+          export JAVA_HOME
+        fi
+        echo "JAVA_HOME set to: $$JAVA_HOME"
+        # Add Java to PATH for all users
+        echo "export JAVA_HOME=$$JAVA_HOME" >> /etc/environment
+        echo "export PATH=\$$$JAVA_HOME/bin:\$$PATH" >> /etc/environment
+        # Fix permissions
+        chown -R airflow:root /opt/airflow
         chmod +x /opt/airflow/install-requirements.sh
-        /opt/airflow/install-requirements.sh
+        # Set PYTHONPATH for user-installed packages
+        export PYTHONUSERBASE=/home/airflow/.local
+        export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages
+        # Switch to airflow user (try multiple methods)
+        if command -v gosu &> /dev/null; then
+          gosu airflow bash -c 'export PYTHONUSERBASE=/home/airflow/.local && export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && /opt/airflow/install-requirements.sh'
+        elif command -v runuser &> /dev/null; then
+          runuser -u airflow -- bash -c 'export PYTHONUSERBASE=/home/airflow/.local && export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && /opt/airflow/install-requirements.sh'
+        else
+          # Fallback: install as root (Airflow will warn but should work)
+          /opt/airflow/install-requirements.sh || pip install --break-system-packages --no-cache-dir -r /opt/airflow/requirements.txt
+        fi
         exec /usr/bin/dumb-init -- /entrypoint webserver
     ports:
       - "8081:8080"
@@ -140,7 +286,12 @@ services:
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - AIRFLOW__CORE__DEFAULT_POOL_SIZE=128
       - SPARK_MASTER_URL=spark://spark-master:7077
+      # JAVA_HOME will be set dynamically by startup script
+      - PYTHONUSERBASE=/home/airflow/.local
+      - PYTHONNOUSERSITE=0
+      - PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -151,13 +302,127 @@ services:
       - ./requirements.txt:/opt/airflow/requirements.txt
       - ./requirements-pyspark.txt:/opt/airflow/requirements-pyspark.txt
       - ./install-requirements.sh:/opt/airflow/install-requirements.sh
+    user: "0:0"  # Run as root initially to install Java, then switch to airflow
     entrypoint: /bin/bash
     command:
       - -c
       - |
+        # IMPORTANT: Unset any JAVA_HOME from host (could be Windows path)
+        unset JAVA_HOME
+        
+        # Install Java (run as root initially)
+        echo "Checking for Java installation..."
+        if ! command -v java &> /dev/null || ! java -version &> /dev/null; then
+          echo "Installing Java..."
+          apt-get update -qq
+          # Try different package names - default-jre-headless is most universally available
+          if apt-get install -y -qq default-jre-headless 2>/dev/null; then
+            echo "Java installed via default-jre-headless"
+          elif apt-get install -y -qq openjdk-11-jre-headless 2>/dev/null; then
+            echo "Java 11 installed via openjdk-11-jre-headless"
+          elif apt-get install -y -qq openjdk-17-jre-headless 2>/dev/null; then
+            echo "Java 17 installed via openjdk-17-jre-headless"
+          elif apt-get install -y -qq openjdk-11-jdk-headless 2>/dev/null; then
+            echo "Java 11 installed via openjdk-11-jdk-headless"
+          else
+            echo "ERROR: Failed to install Java - trying to find existing installation..."
+            # Check if Java might already be installed
+            if find /usr -name java 2>/dev/null | grep -q java; then
+              echo "Java found in system, using existing installation"
+            else
+              echo "ERROR: No Java installation found and installation failed"
+              exit 1
+            fi
+          fi
+          apt-get clean && rm -rf /var/lib/apt/lists/*
+          echo "Java installation completed"
+        else
+          echo "Java already installed"
+        fi
+        # Find Java installation directory (can vary by image and package)
+        # Prioritize Java 17 since that's what default-jre-headless installs on Debian 12
+        if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ] && [ -f "/usr/lib/jvm/java-17-openjdk-amd64/bin/java" ]; then
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+        elif [ -d "/usr/lib/jvm/java-11-openjdk-amd64" ] && [ -f "/usr/lib/jvm/java-11-openjdk-amd64/bin/java" ]; then
+          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+        elif [ -d "/usr/lib/jvm/java-11-openjdk" ] && [ -f "/usr/lib/jvm/java-11-openjdk/bin/java" ]; then
+          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+        elif [ -d "/usr/lib/jvm/default-java" ] && [ -f "/usr/lib/jvm/default-java/bin/java" ]; then
+          export JAVA_HOME="/usr/lib/jvm/default-java"
+          # default-java is usually a symlink, resolve it
+          if [ -L "$$JAVA_HOME" ]; then
+            JAVA_HOME=$$(readlink -f "$$JAVA_HOME")
+          fi
+          export JAVA_HOME
+        else
+          # Find any Java installation
+            JAVA_HOME=$$(find /usr/lib/jvm -maxdepth 1 -type d \( -name "java-*" -o -name "default-java" \) 2>/dev/null | head -1)
+            if [ -z "$$JAVA_HOME" ] || [ ! -f "$$JAVA_HOME/bin/java" ]; then
+            # Last resort: use java command to find JAVA_HOME (only if it's a Linux path)
+            JAVA_PATH=$$(which java 2>/dev/null)
+            if [ -n "$$JAVA_PATH" ] && [ "$$JAVA_PATH" != "$${JAVA_PATH#/}" ]; then
+              # Only proceed if it's an absolute Linux path (starts with /)
+              JAVA_HOME=$$(readlink -f "$$JAVA_PATH" 2>/dev/null | sed "s:/bin/java::")
+              if [ -z "$$JAVA_HOME" ] || [ ! -d "$$JAVA_HOME" ] || [ "$$JAVA_HOME" != "$${JAVA_HOME#/}" ]; then
+                JAVA_HOME=""
+              fi
+            fi
+            if [ -z "$$JAVA_HOME" ] || [ ! -f "$$JAVA_HOME/bin/java" ]; then
+              echo "ERROR: Java installation not found after installation!"
+              echo "Searched in /usr/lib/jvm"
+              echo "Available java: $$(which java 2>/dev/null || echo 'not found')"
+              exit 1
+            fi
+          fi
+          export JAVA_HOME
+        fi
+        # Verify Java is accessible
+        if [ ! -f "$$JAVA_HOME/bin/java" ]; then
+          echo "ERROR: Java binary not found at $$JAVA_HOME/bin/java"
+          echo "Java was installed but cannot be found. Checking system..."
+          ls -la /usr/lib/jvm/ 2>/dev/null || echo "JVM directory not found"
+          which java 2>/dev/null || echo "java not in PATH"
+          exit 1
+        fi
+        # Verify it's a Linux path, not Windows (must start with /)
+        if [ "$$JAVA_HOME" != "$${JAVA_HOME#/}" ]; then
+          # It's a Linux path, good!
+          :
+        else
+          echo "ERROR: JAVA_HOME is not a Linux path: $$JAVA_HOME"
+          echo "This should not happen. Searching for correct Linux path..."
+          JAVA_HOME=$$(find /usr/lib/jvm -maxdepth 1 -type d \( -name "java-*" -o -name "default-java" \) 2>/dev/null | head -1)
+          if [ -z "$$JAVA_HOME" ] || [ ! -f "$$JAVA_HOME/bin/java" ]; then
+            echo "ERROR: Could not find valid Linux Java installation"
+            echo "Contents of /usr/lib/jvm:"
+            ls -la /usr/lib/jvm/ 2>/dev/null || echo "Directory not found"
+            exit 1
+          fi
+          export JAVA_HOME
+        fi
+        echo "JAVA_HOME set to: $$JAVA_HOME"
+        # Add Java to PATH for all users
+        echo "export JAVA_HOME=$$JAVA_HOME" >> /etc/environment
+        echo "export PATH=\$$$JAVA_HOME/bin:\$$PATH" >> /etc/environment
+        # Fix permissions
+        chown -R airflow:root /opt/airflow
         chmod +x /opt/airflow/install-requirements.sh
-        /opt/airflow/install-requirements.sh
-        exec /usr/bin/dumb-init -- /entrypoint scheduler
+        # Set PYTHONPATH for user-installed packages
+        export PYTHONUSERBASE=/home/airflow/.local
+        export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages
+        # Switch to airflow user (try multiple methods)
+        if command -v gosu &> /dev/null; then
+          gosu airflow bash -c 'export PYTHONUSERBASE=/home/airflow/.local && export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && /opt/airflow/install-requirements.sh'
+        elif command -v runuser &> /dev/null; then
+          runuser -u airflow -- bash -c 'export PYTHONUSERBASE=/home/airflow/.local && export PYTHONPATH=/home/airflow/.local/lib/python3.11/site-packages && /opt/airflow/install-requirements.sh'
+        else
+          # Fallback: install as root (Airflow will warn but should work)
+          /opt/airflow/install-requirements.sh || pip install --break-system-packages --no-cache-dir -r /opt/airflow/requirements.txt
+        fi
+        # Export JAVA_HOME for scheduler process
+        export JAVA_HOME
+        export PATH=$$JAVA_HOME/bin:$$PATH
+        exec env JAVA_HOME="$$JAVA_HOME" PATH="$$JAVA_HOME/bin:$$PATH" /usr/bin/dumb-init -- /entrypoint scheduler
     networks:
       - iptu-network
 

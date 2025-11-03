@@ -313,7 +313,13 @@ class DataTransformer:
             # Step 2: Convert low-cardinality string columns to category
             # Changed from < 50% ratio to < 50 absolute unique values
             categorical_columns = []
-            for col in string_columns:
+            for col_info in string_columns:
+                # Extract column name (string_columns may be tuples (col_name, dtype) or just strings)
+                if isinstance(col_info, tuple):
+                    col = col_info[0]
+                else:
+                    col = col_info
+                
                 unique_count = df_clean[col].nunique()
                 if unique_count < 50:
                     df_clean[col] = df_clean[col].astype('category')

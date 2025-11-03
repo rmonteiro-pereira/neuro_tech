@@ -38,11 +38,12 @@ class IPTUPipeline:
         Initialize pipeline with all components.
         
         Args:
-            engine: Optional engine type ('pandas' or 'pyspark'). Uses config default if None.
+            engine: Optional engine type ('pandas' or 'pyspark'). 
+                   Defaults to 'pyspark' to ensure Delta table compatibility.
         """
-        # Get engine from config if not provided
+        # Always use PySpark engine for proper Delta table support
         if engine is None:
-            engine = getattr(settings, 'DATA_ENGINE', 'pandas')
+            engine = 'pyspark'
         
         self.engine = get_engine(engine)
         
@@ -191,6 +192,7 @@ class IPTUPipeline:
         
         # Load all years from bronze layer
         silver_dataframes = []
+        total_rows_before_concat = 0
         for year in years:
             bronze_path = BRONZE_DIR / f"iptu_{year}"
             if not self._path_exists(bronze_path):
@@ -199,8 +201,30 @@ class IPTUPipeline:
             
             df = self._load_from_bronze(bronze_path)
             
+            # Log row count BEFORE cleaning
+            rows_before = self.engine.get_count(df)
+            logger.info(f"Year {year}: Loaded {rows_before:,} rows, {len(self.engine.get_columns(df))} columns from bronze")
+            
             # Apply additional cleaning for silver layer
             df = self.transformer.clean_and_optimize(df)
+            
+            # Log row count AFTER cleaning
+            rows_after = self.engine.get_count(df)
+            if rows_after != rows_before:
+                logger.warning(f"Year {year}: Row count changed during cleaning: {rows_before:,} -> {rows_after:,}")
+            
+            # Validate column names are unique
+            if self.engine.engine_type == "pandas":
+                if df.columns.duplicated().any():
+                    dup_cols = df.columns[df.columns.duplicated()].unique()
+                    logger.error(f"Year {year}: DUPLICATE COLUMNS DETECTED: {dup_cols.tolist()}")
+                    raise ValueError(f"Duplicate columns found for year {year}: {dup_cols.tolist()}")
+                
+                # Check for UUID column names (indicates a problem)
+                uuid_cols = [col for col in df.columns if str(col).startswith('col-') and len(str(col)) > 40]
+                if uuid_cols:
+                    logger.error(f"Year {year}: UUID COLUMN NAMES DETECTED: {uuid_cols[:5]}")
+                    raise ValueError(f"UUID column names found for year {year} - this indicates a data corruption issue")
             
             # Add silver layer metadata
             if self.engine.engine_type == "pyspark":
@@ -212,11 +236,31 @@ class IPTUPipeline:
                 df["_silver_timestamp"] = pd.Timestamp.now()
                 df["_data_layer"] = "silver"
             
+            rows_final = self.engine.get_count(df)
+            total_rows_before_concat += rows_final
             silver_dataframes.append(df)
-            logger.info(f"[OK] Year {year} processed for silver layer")
+            logger.info(f"[OK] Year {year} processed for silver layer: {rows_final:,} rows, {len(self.engine.get_columns(df))} columns")
         
         if not silver_dataframes:
             raise RuntimeError("No data found in bronze layer to consolidate")
+        
+        logger.info(f"\nTotal rows before concatenation: {total_rows_before_concat:,}")
+        logger.info(f"Number of DataFrames to concatenate: {len(silver_dataframes)}")
+        
+        # Check for schema alignment issues
+        if self.engine.engine_type == "pandas":
+            all_columns = set()
+            for i, df in enumerate(silver_dataframes):
+                df_cols = set(df.columns)
+                all_columns.update(df_cols)
+                logger.debug(f"DataFrame {i} has {len(df_cols)} unique columns")
+            logger.info(f"Total unique columns across all DataFrames: {len(all_columns)}")
+            
+            # Verify no duplicate columns in any DataFrame
+            for i, df in enumerate(silver_dataframes):
+                if df.columns.duplicated().any():
+                    dup = df.columns[df.columns.duplicated()].unique()
+                    raise ValueError(f"DataFrame {i} has duplicate columns before concat: {dup.tolist()}")
             
         # Consolidate all years into single dataset (schema evolution handled by unionByName)
         logger.info(f"\nConsolidating {len(silver_dataframes)} years into silver layer...")
@@ -226,6 +270,29 @@ class IPTUPipeline:
         row_count = self.engine.get_count(consolidated_df)
         col_count = len(self.engine.get_columns(consolidated_df))
         logger.info(f"Silver layer consolidated: {row_count:,} rows, {col_count} columns")
+        
+        # Validate row count is reasonable (should be close to sum of individual DataFrames)
+        expected_ratio = row_count / total_rows_before_concat if total_rows_before_concat > 0 else 0
+        if expected_ratio > 1.1:  # Allow 10% margin for any deduplication/removal
+            logger.error(f"⚠️  WARNING: Row count is {expected_ratio:.2f}x higher than expected!")
+            logger.error(f"   Expected: ~{total_rows_before_concat:,} rows")
+            logger.error(f"   Actual: {row_count:,} rows")
+            logger.error(f"   This suggests data duplication during concatenation!")
+            # Don't fail, but log the issue
+        
+        # Check for UUID column names in consolidated result
+        if self.engine.engine_type == "pandas":
+            uuid_cols = [col for col in consolidated_df.columns if str(col).startswith('col-') and len(str(col)) > 40]
+            if uuid_cols:
+                logger.error(f"⚠️  UUID column names detected in consolidated DataFrame: {len(uuid_cols)} columns")
+                logger.error(f"   Sample UUID columns: {uuid_cols[:5]}")
+                logger.error(f"   This indicates a concatenation schema alignment issue!")
+                
+            # Check for duplicate columns
+            if consolidated_df.columns.duplicated().any():
+                dup_cols = consolidated_df.columns[consolidated_df.columns.duplicated()].unique()
+                logger.error(f"⚠️  Duplicate columns in consolidated DataFrame: {dup_cols.tolist()}")
+                raise ValueError(f"Duplicate columns after consolidation: {dup_cols.tolist()}")
         
         # Save consolidated silver layer
         silver_path = SILVER_DIR / "iptu_silver_consolidated"
@@ -508,7 +575,24 @@ class IPTUPipeline:
                 # Fall back to Parquet
                 return self.engine.read_parquet(path)
         else:
-            return self.engine.read_parquet(path)
+            # Pandas: Load from specific parquet file (data.parquet)
+            # NOT from directory, which would read all parquet files and duplicate data
+            parquet_file = path / "data.parquet"
+            if not parquet_file.exists():
+                # Fallback: check if path is already a file
+                if path.exists() and path.is_file():
+                    parquet_file = path
+                else:
+                    raise FileNotFoundError(f"Bronze data not found: {parquet_file}")
+            
+            logger.debug(f"Loading bronze data from: {parquet_file}")
+            df = self.engine.read_parquet(parquet_file)
+            
+            # Validate row count is reasonable (log if suspicious)
+            rows = len(df)
+            logger.debug(f"Loaded {rows:,} rows from bronze file: {parquet_file.name}")
+            
+            return df
     
     def get_pipeline_summary(self) -> dict:
         """
