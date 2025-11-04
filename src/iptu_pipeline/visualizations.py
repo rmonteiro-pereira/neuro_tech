@@ -1,6 +1,6 @@
 """
 Visualization module for IPTU analysis results.
-Generates plots from analysis CSV files using matplotlib and seaborn.
+Generates interactive plots using Plotly with professional color palettes.
 """
 import pandas as pd
 import numpy as np
@@ -8,13 +8,6 @@ from pathlib import Path
 from typing import Optional, Dict, List
 import warnings
 warnings.filterwarnings('ignore')
-
-try:
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
 
 try:
     import plotly.graph_objects as go
@@ -29,11 +22,29 @@ from iptu_pipeline.utils.logger import setup_logger
 
 logger = setup_logger("visualizations")
 
-# Set style
-if MATPLOTLIB_AVAILABLE:
-    sns.set_style("whitegrid")
-    plt.rcParams['figure.figsize'] = (12, 6)
-    plt.rcParams['font.size'] = 10
+# Professional color palette
+COLOR_PALETTE = {
+    'primary': px.colors.qualitative.Plotly,  # Professional blue-based palette
+    'sequential': px.colors.sequential.Viridis,  # For continuous data
+    'diverging': ['#d73027', '#f46d43', '#fdae61', '#fee08b', '#ffffbf', '#e6f598', '#abdda4', '#66c2a5', '#3288bd'],  # Red-Yellow-Green diverging
+    'categorical': px.colors.qualitative.Set3,  # For categories
+    'pastel': px.colors.qualitative.Pastel,  # Soft colors
+}
+
+# Default plot template
+PLOT_TEMPLATE = 'plotly_white'  # Clean white background
+PLOT_CONFIG = {
+    'displayModeBar': True,
+    'displaylogo': False,
+    'modeBarButtonsToRemove': ['lasso2d', 'select2d']
+}
+
+# Check if kaleido is available for PNG export
+try:
+    import kaleido
+    KALEIDO_AVAILABLE = True
+except ImportError:
+    KALEIDO_AVAILABLE = False
 
 
 class IPTUVizualizer:
@@ -50,11 +61,58 @@ class IPTUVizualizer:
         self.plots_output_path = PLOTS_OUTPUT_PATH
         self.plots_output_path.mkdir(parents=True, exist_ok=True)
         
-        if not MATPLOTLIB_AVAILABLE:
-            logger.warning("Matplotlib not available. Some visualizations will be skipped.")
+        if not PLOTLY_AVAILABLE:
+            logger.warning("Plotly not available. Some visualizations will be skipped.")
+    
+    def _save_plot(self, fig: go.Figure, plot_name: str, save: bool = True) -> Dict[str, Optional[Path]]:
+        """
+        Save plot as both HTML and PNG (if kaleido available).
+        
+        Args:
+            fig: Plotly figure to save
+            plot_name: Name of the plot (without extension)
+            save: Whether to save the plot
+        
+        Returns:
+            Dict with 'html' and 'png' keys containing paths or None
+        """
+        if not save or fig is None:
+            return {'html': None, 'png': None}
+        
+        result = {'html': None, 'png': None}
+        
+        # Save HTML
+        html_path = self.plots_output_path / f"{plot_name}.html"
+        try:
+            fig.write_html(html_path, config=PLOT_CONFIG)
+            result['html'] = html_path
+            logger.info(f"Saved plot HTML: {html_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save HTML for {plot_name}: {e}")
+        
+        # Save PNG if kaleido is available
+        if KALEIDO_AVAILABLE:
+            png_path = self.plots_output_path / f"{plot_name}.png"
+            try:
+                # Set width and height for PNG export (higher quality)
+                fig.write_image(
+                    str(png_path),
+                    width=1200,
+                    height=800,
+                    scale=2,  # 2x scale for higher DPI
+                    engine='kaleido'
+                )
+                result['png'] = png_path
+                logger.info(f"Saved plot PNG: {png_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save PNG for {plot_name}: {e}")
+        else:
+            logger.debug("Kaleido not available, skipping PNG export")
+        
+        return result
     
     def load_analysis_data(self, analysis_type: str, filename: str) -> pd.DataFrame:
-        """Load analysis data from CSV file."""
+        """Load analysis data from CSV file in gold layer."""
         file_path = self.analysis_path / analysis_type / filename
         if not file_path.exists():
             # Only warn if analysis directory exists (analysis was run but file missing)
@@ -64,91 +122,240 @@ class IPTUVizualizer:
                 return pd.DataFrame()
         return pd.read_csv(file_path)
     
-    def plot_volume_by_year(self, save: bool = True) -> Optional[plt.Figure]:
+    def load_from_gold(self, path: Path, use_spark: bool = False) -> pd.DataFrame:
+        """
+        Load data directly from gold layer using pandas or spark.
+        
+        Args:
+            path: Path to gold layer parquet file
+            use_spark: Whether to use PySpark for reading (if available)
+        
+        Returns:
+            DataFrame with data from gold layer
+        """
+        if not path.exists():
+            logger.warning(f"Gold layer file not found: {path}")
+            return pd.DataFrame()
+        
+        try:
+            if use_spark:
+                try:
+                    from pyspark.sql import SparkSession
+                    spark = SparkSession.builder.getOrCreate()
+                    df = spark.read.parquet(str(path))
+                    # Convert to pandas for visualization
+                    return df.toPandas()
+                except Exception as e:
+                    logger.warning(f"PySpark read failed, falling back to pandas: {e}")
+            
+            # Use pandas by default
+            return pd.read_parquet(path)
+        except Exception as e:
+            logger.error(f"Could not load from gold layer {path}: {e}")
+            return pd.DataFrame()
+    
+    def _load_silver_data_with_fallback(self, required_columns: Optional[List[str]] = None) -> Optional[pd.DataFrame]:
+        """
+        Load data from silver layer with fallback to bronze layer if silver is corrupted.
+        
+        Args:
+            required_columns: List of required column names. If any are missing, fallback to bronze.
+        
+        Returns:
+            DataFrame with data, or None if loading fails completely.
+        """
+        from iptu_pipeline.config import SILVER_DIR, BRONZE_DIR
+        from iptu_pipeline.config import settings
+        
+        if required_columns is None:
+            required_columns = ["valor IPTU"]
+        
+        # Try loading from silver layer first
+        silver_path = SILVER_DIR / "iptu_silver_consolidated" / "data.parquet"
+        
+        if silver_path.exists():
+            try:
+                df = pd.read_parquet(silver_path)
+                
+                # Check if DataFrame is empty
+                if df.empty:
+                    logger.warning(f"Silver layer file is EMPTY, falling back to bronze layer")
+                else:
+                    # Check if columns are corrupted (UUID column names)
+                    if len(df.columns) > 0 and df.columns[0].startswith('col-') and len(df.columns[0]) > 40:
+                        logger.warning(f"Silver layer has corrupted column names (UUID), falling back to bronze layer")
+                    else:
+                        # Check for required columns
+                        missing_cols = [col for col in required_columns if col not in df.columns]
+                        if missing_cols:
+                            logger.warning(f"Silver layer missing required columns {missing_cols}, falling back to bronze layer")
+                        else:
+                            logger.info(f"Loaded silver data: {len(df):,} rows, {len(df.columns)} columns")
+                            return df
+            except Exception as e:
+                logger.warning(f"Could not load from silver layer: {e}, falling back to bronze layer")
+        
+        # Fallback to bronze layer: load all years and concatenate
+        logger.info("Attempting to load data from bronze layer as fallback...")
+        bronze_dfs = []
+        years = sorted(settings.CSV_YEARS + settings.JSON_YEARS)
+        
+        for year in years:
+            bronze_path = BRONZE_DIR / f"iptu_{year}" / "data.parquet"
+            if bronze_path.exists():
+                try:
+                    year_df = pd.read_parquet(bronze_path)
+                    # Check if this year's data also has corrupted columns
+                    if len(year_df.columns) > 0 and year_df.columns[0].startswith('col-') and len(year_df.columns[0]) > 40:
+                        logger.warning(f"Year {year} bronze data also has corrupted columns, skipping")
+                        continue
+                    
+                    # Check for required columns
+                    missing_cols = [col for col in required_columns if col not in year_df.columns]
+                    if missing_cols:
+                        logger.warning(f"Year {year} bronze data missing required columns {missing_cols}, skipping")
+                        continue
+                    
+                    bronze_dfs.append(year_df)
+                    logger.debug(f"Loaded year {year}: {len(year_df):,} rows")
+                except Exception as e:
+                    logger.warning(f"Could not load year {year} from bronze layer: {e}")
+                    continue
+        
+        if not bronze_dfs:
+            logger.error("Could not load data from either silver or bronze layers")
+            return None
+        
+        # Concatenate all years
+        try:
+            df = pd.concat(bronze_dfs, ignore_index=True)
+            logger.info(f"Loaded and concatenated bronze data: {len(df):,} rows, {len(df.columns)} columns from {len(bronze_dfs)} years")
+            
+            # Verify required columns are present
+            missing_cols = [col for col in required_columns if col not in df.columns]
+            if missing_cols:
+                logger.error(f"After concatenation, still missing required columns: {missing_cols}")
+                return None
+            
+            return df
+        except Exception as e:
+            logger.error(f"Failed to concatenate bronze data: {e}")
+            return None
+    
+    def plot_volume_by_year(self, save: bool = True) -> Optional[go.Figure]:
         """Plot total properties by year."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("volume_analysis", "volume_by_year.csv")
         if df.empty:
             return None
         
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig = go.Figure()
         
-        bars = ax.bar(df["ano"], df["total_imoveis"], color='steelblue', alpha=0.7, edgecolor='navy')
-        ax.set_xlabel("Ano", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Total de Imóveis", fontsize=12, fontweight='bold')
-        ax.set_title("Total de Imóveis por Ano (Histórico)", fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='y', alpha=0.3)
+        fig.add_trace(go.Bar(
+            x=df["ano"],
+            y=df["total_imoveis"],
+            text=[f'{int(x):,}' for x in df["total_imoveis"]],
+            textposition='outside',
+            marker=dict(
+                color=COLOR_PALETTE['primary'][0],
+                line=dict(color='#1f77b4', width=1.5)
+            ),
+            hovertemplate='<b>Ano:</b> %{x}<br><b>Total de Imóveis:</b> %{y:,}<extra></extra>'
+        ))
         
-        # Add value labels on bars
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height):,}',
-                   ha='center', va='bottom', fontweight='bold')
-        
-        plt.tight_layout()
+        fig.update_layout(
+            title={
+                'text': "Total de Imóveis por Ano (Histórico)",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16, 'family': 'Arial, sans-serif'}
+            },
+            xaxis_title="Ano",
+            yaxis_title="Total de Imóveis",
+            template=PLOT_TEMPLATE,
+            height=500,
+            showlegend=False,
+            hovermode='x unified'
+        )
         
         if save:
-            output_path = self.plots_output_path / "volume_by_year.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "volume_by_year", save=True)
         
         return fig
     
-    def plot_volume_by_type(self, top_n: int = 10, save: bool = True) -> Optional[plt.Figure]:
+    def plot_volume_by_type(self, top_n: int = 10, save: bool = True) -> Optional[go.Figure]:
         """Plot distribution of properties by type."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("volume_analysis", "volume_by_type.csv")
         if df.empty:
             return None
         
-        df_top = df.head(top_n)
+        df_top = df.head(top_n).sort_values("total_imoveis", ascending=False)
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
-        
-        # Pie chart with direct labels
-        colors = sns.color_palette("Set3", len(df_top))
-        wedges, texts, autotexts = ax1.pie(
-            df_top["total_imoveis"], 
-            labels=df_top["tipo_uso"],  # Direct labels on pie slices
-            autopct='%1.1f%%',
-            startangle=90,
-            colors=colors,
-            textprops={'fontsize': 8}
+        # Create subplots
+        from plotly.subplots import make_subplots
+        fig = make_subplots(
+            rows=1, cols=2,
+            specs=[[{"type": "pie"}, {"type": "bar"}]],
+            subplot_titles=(
+                f"Distribuição por Tipo de Uso (Top {top_n})",
+                f"Volume por Tipo de Uso (Top {top_n})"
+            )
         )
-        ax1.set_title(f"Distribuição por Tipo de Uso (Top {top_n})", fontsize=14, fontweight='bold')
         
-        # Bar chart
-        df_top = df_top.sort_values("total_imoveis", ascending=True)
-        bars = ax2.barh(df_top["tipo_uso"], df_top["total_imoveis"], color='coral', alpha=0.7)
-        ax2.set_xlabel("Total de Imóveis", fontsize=12, fontweight='bold')
-        ax2.set_ylabel("Tipo de Uso", fontsize=12, fontweight='bold')
-        ax2.set_title(f"Volume por Tipo de Uso (Top {top_n})", fontsize=14, fontweight='bold')
-        ax2.grid(axis='x', alpha=0.3)
+        # Pie chart
+        colors = COLOR_PALETTE['categorical'][:len(df_top)]
+        fig.add_trace(
+            go.Pie(
+            labels=df_top["tipo_uso"],
+                values=df_top["total_imoveis"],
+                marker=dict(colors=colors),
+                textinfo='label+percent',
+                hovertemplate='<b>%{label}</b><br>Total: %{value:,}<br>Percentual: %{percent}<extra></extra>'
+            ),
+            row=1, col=1
+        )
         
-        # Add value labels
-        for bar in bars:
-            width = bar.get_width()
-            ax2.text(width, bar.get_y() + bar.get_height()/2.,
-                   f'{int(width):,}',
-                   ha='left', va='center', fontweight='bold')
+        # Bar chart (sorted ascending for better visualization)
+        df_top_sorted = df_top.sort_values("total_imoveis", ascending=True)
+        fig.add_trace(
+            go.Bar(
+                y=df_top_sorted["tipo_uso"],
+                x=df_top_sorted["total_imoveis"],
+                orientation='h',
+                text=[f'{int(x):,}' for x in df_top_sorted["total_imoveis"]],
+                textposition='outside',
+                marker=dict(
+                    color=COLOR_PALETTE['primary'][2],
+                    line=dict(color=COLOR_PALETTE['primary'][2], width=1)
+                ),
+                hovertemplate='<b>%{y}</b><br>Total de Imóveis: %{x:,}<extra></extra>'
+            ),
+            row=1, col=2
+        )
         
-        plt.tight_layout()
+        fig.update_layout(
+            template=PLOT_TEMPLATE,
+            height=600,
+            showlegend=False,
+            title_text=f"Distribuição de Imóveis por Tipo de Uso (Top {top_n})",
+            title_x=0.5
+        )
+        
+        fig.update_xaxes(title_text="Total de Imóveis", row=1, col=2)
         
         if save:
-            output_path = self.plots_output_path / "volume_by_type.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "volume_by_type", save=True)
         
         return fig
     
-    def plot_top_neighborhoods(self, top_n: int = 20, save: bool = True) -> Optional[plt.Figure]:
+    def plot_top_neighborhoods(self, top_n: int = 20, save: bool = True) -> Optional[go.Figure]:
         """Plot top neighborhoods by volume."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("volume_analysis", "volume_by_neighborhood.csv")
@@ -157,34 +364,47 @@ class IPTUVizualizer:
         
         df_top = df.head(top_n).sort_values("total_imoveis", ascending=True)
         
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig = go.Figure()
         
-        bars = ax.barh(df_top["bairro"], df_top["total_imoveis"], color='mediumseagreen', alpha=0.7)
-        ax.set_xlabel("Total de Imóveis", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Bairro", fontsize=12, fontweight='bold')
-        ax.set_title(f"Top {top_n} Bairros por Volume de Imóveis", fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='x', alpha=0.3)
+        fig.add_trace(go.Bar(
+            y=df_top["bairro"],
+            x=df_top["total_imoveis"],
+            orientation='h',
+            text=[f'{int(row["total_imoveis"]):,} ({row["percentual"]:.1f}%)' 
+                  for _, row in df_top.iterrows()],
+            textposition='outside',
+            marker=dict(
+                color=COLOR_PALETTE['sequential'][3],
+                line=dict(color=COLOR_PALETTE['sequential'][5], width=1.5),
+                colorscale='Viridis'
+            ),
+            hovertemplate='<b>%{y}</b><br>Total: %{x:,}<br>Percentual: %{customdata:.2f}%<extra></extra>',
+            customdata=df_top["percentual"]
+        ))
         
-        # Add value and percentage labels
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            pct = df_top.iloc[i]["percentual"]
-            ax.text(width, bar.get_y() + bar.get_height()/2.,
-                   f'{int(width):,} ({pct:.1f}%)',
-                   ha='left', va='center', fontweight='bold')
-        
-        plt.tight_layout()
+        fig.update_layout(
+            title={
+                'text': f"Top {top_n} Bairros por Volume de Imóveis",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Total de Imóveis",
+            yaxis_title="Bairro",
+            template=PLOT_TEMPLATE,
+            height=max(400, top_n * 25),
+            showlegend=False,
+            hovermode='y unified'
+        )
         
         if save:
-            output_path = self.plots_output_path / "top_neighborhoods.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "top_neighborhoods", save=True)
         
         return fig
     
-    def plot_volume_by_year_and_type(self, save: bool = True) -> Optional[plt.Figure]:
+    def plot_volume_by_year_and_type(self, save: bool = True) -> Optional[go.Figure]:
         """Plot volume by year and type (stacked area chart)."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("volume_analysis", "volume_by_year_type.csv")
@@ -197,83 +417,59 @@ class IPTUVizualizer:
         top_types = df.groupby("tipo_uso")["total_imoveis"].sum().nlargest(5).index
         pivot_df = pivot_df[top_types]
         
-        fig, ax = plt.subplots(figsize=(14, 8))
+        fig = go.Figure()
         
-        # Stacked area chart
-        ax.stackplot(pivot_df.index, *[pivot_df[col] for col in pivot_df.columns],
-                     labels=pivot_df.columns, alpha=0.7)
+        colors = COLOR_PALETTE['categorical'][:len(pivot_df.columns)]
+        for i, col in enumerate(pivot_df.columns):
+            fig.add_trace(go.Scatter(
+                x=pivot_df.index,
+                y=pivot_df[col],
+                mode='lines',
+                name=col,
+                stackgroup='one',
+                fillcolor=colors[i % len(colors)],
+                line=dict(width=0.5, color=colors[i % len(colors)]),
+                hovertemplate=f'<b>{col}</b><br>Ano: %{{x}}<br>Total: %{{y:,}}<extra></extra>'
+            ))
         
-        ax.set_xlabel("Ano", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Total de Imóveis", fontsize=12, fontweight='bold')
-        ax.set_title("Evolução do Volume de Imóveis por Tipo de Uso (Top 5)", 
-                    fontsize=14, fontweight='bold', pad=20)
-        ax.legend(loc='upper left', frameon=True, shadow=True)
-        ax.grid(alpha=0.3)
-        
-        plt.tight_layout()
+        fig.update_layout(
+            title={
+                'text': "Evolução do Volume de Imóveis por Tipo de Uso (Top 5)",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Ano",
+            yaxis_title="Total de Imóveis",
+            template=PLOT_TEMPLATE,
+            height=600,
+            hovermode='x unified',
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02
+            )
+        )
         
         if save:
-            output_path = self.plots_output_path / "volume_by_year_type.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "volume_by_year_type", save=True)
         
         return fig
     
-    def plot_tax_trends(self, save: bool = True) -> Optional[plt.Figure]:
+    def plot_tax_trends(self, save: bool = True) -> Optional[go.Figure]:
         """Plot IPTU tax value trends as boxplot by year."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
-        # Load raw data from silver layer for boxplot
-        from iptu_pipeline.config import SILVER_DIR
-        import pandas as pd
         import numpy as np
         
-        silver_path = SILVER_DIR / "iptu_silver_consolidated" / "data.parquet"
+        # Load raw data from silver layer with fallback to bronze
+        df = self._load_silver_data_with_fallback(required_columns=["valor IPTU", "ano do exercício"])
         
-        # Load from silver layer (silver should always have correct column names)
-        if not silver_path.exists():
-            logger.error(f"Silver data not found: {silver_path}. Please run the pipeline to generate silver layer.")
-            return None
-        
-        try:
-            df = pd.read_parquet(silver_path)
-            
-            # Check if DataFrame is empty
-            if df.empty:
-                logger.error(f"Silver layer file exists but is EMPTY: {silver_path}")
-                logger.error(f"The silver layer consolidation may have failed. Please run the pipeline again.")
-                return None
-            
-            # Check if no columns (shouldn't happen but check anyway)
-            if len(df.columns) == 0:
-                logger.error(f"Silver layer file exists but has NO COLUMNS: {silver_path}")
-                logger.error(f"The silver layer file may be corrupted. Please run the pipeline again.")
-                return None
-            
-            logger.info(f"Loaded silver data: {len(df):,} rows, {len(df.columns)} columns")
-            
-            # Check if columns are corrupted (UUID column names)
-            if len(df.columns) > 0 and df.columns[0].startswith('col-') and len(df.columns[0]) > 40:
-                logger.error(f"Silver layer has corrupted column names (UUID). Please regenerate the silver layer.")
-                logger.error(f"This indicates a problem during silver layer consolidation. Run the pipeline again.")
-                return None
-            
-            # Check for valor IPTU column with better diagnostics
-            if "valor IPTU" not in df.columns:
-                all_cols = list(df.columns)
-                similar_cols = [c for c in all_cols if 'valor' in str(c).lower() or 'iptu' in str(c).lower()]
-                logger.error(f"Column 'valor IPTU' not found in silver layer.")
-                logger.error(f"Available columns ({len(all_cols)}): {all_cols[:20]}{'...' if len(all_cols) > 20 else ''}")
-                if similar_cols:
-                    logger.error(f"Similar columns found: {similar_cols}")
-                logger.error(f"Please regenerate the silver layer by running the pipeline.")
-                return None
-        except Exception as e:
-            logger.error(f"Could not load silver data from {silver_path}: {e}")
-            logger.error(f"Error type: {type(e).__name__}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+        if df is None:
+            logger.error("Could not load data for tax trends plot. Please ensure silver or bronze layer is available.")
             return None
         
         valor_iptu_clean = df["valor IPTU"].astype(str).str.replace(
@@ -307,14 +503,11 @@ class IPTUVizualizer:
             logger.warning("No data to plot")
             return None
         
-        # Create figure with boxplot
-        fig, ax = plt.subplots(figsize=(12, 8))
-        
         # Filter extreme outliers using IQR method before creating boxplot
-        filtered_box_data = []
+        filtered_data_list = []
         for year_data in box_data:
             if len(year_data) == 0:
-                filtered_box_data.append(year_data)
+                filtered_data_list.append([])
                 continue
             
             # Calculate IQR
@@ -327,57 +520,62 @@ class IPTUVizualizer:
             upper_bound = q3 + 3 * iqr
             
             filtered_data = year_data[(year_data >= lower_bound) & (year_data <= upper_bound)]
-            filtered_box_data.append(filtered_data)
+            filtered_data_list.append(filtered_data)
         
-        # Create boxplot with filtered data (whiskers at 1st and 99th percentile)
-        bp = ax.boxplot(filtered_box_data, labels=[int(y) for y in years], 
-                       patch_artist=True, showmeans=True,
-                       meanline=False, whis=[1, 99])
+        # Create Plotly boxplot
+        fig = go.Figure()
         
-        # Customize colors
-        colors = sns.color_palette("Set2", len(bp['boxes']))
-        for patch, color in zip(bp['boxes'], colors):
-            patch.set_facecolor(color)
-            patch.set_alpha(0.7)
-            patch.set_edgecolor('darkblue')
-            patch.set_linewidth(1.5)
+        colors = COLOR_PALETTE['sequential'][::len(COLOR_PALETTE['sequential'])//len(years)][:len(years)]
         
-        # Customize other elements
-        for element in ['whiskers', 'fliers', 'means', 'medians', 'caps']:
-            if element in bp:
-                for item in bp[element]:
-                    item.set_color('darkblue')
-                    item.set_linewidth(1.5)
+        for i, (year, year_data) in enumerate(zip(years, filtered_data_list)):
+            if len(year_data) > 0:
+                fig.add_trace(go.Box(
+                    y=year_data,
+                    name=str(int(year)),
+                    boxpoints='outliers',
+                    marker_color=colors[i % len(colors)],
+                    line=dict(color=COLOR_PALETTE['primary'][1], width=2),
+                    fillcolor=colors[i % len(colors)],
+                    opacity=0.7,
+                    hovertemplate=f'<b>Ano:</b> {int(year)}<br>Valor: R$ %{{y:,.0f}}<extra></extra>'
+                ))
         
         # Use log scale if data has large range
         max_val = df["valor_iptu_numeric"].max()
         median_val = df["valor_iptu_numeric"].median()
-        if max_val > median_val * 50:
-            ax.set_yscale('log')
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(
-                lambda x, p: f'R${x/1e3:.0f}k' if x < 1e6 else f'R${x/1e6:.1f}M'
-            ))
-        else:
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
+        use_log = max_val > median_val * 50
         
-        ax.set_xlabel("Ano", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Valor IPTU (R$)", fontsize=12, fontweight='bold')
-        ax.set_title("Distribuição de Valores de IPTU por Ano (Boxplot)\n(Apenas valores não-zero)", 
-                     fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='y', alpha=0.3)
+        fig.update_layout(
+            title={
+                'text': "Distribuição de Valores de IPTU por Ano (Boxplot)<br><sub>Apenas valores não-zero</sub>",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Ano",
+            yaxis_title="Valor IPTU (R$)",
+            template=PLOT_TEMPLATE,
+            height=600,
+            showlegend=False,
+            yaxis_type='log' if use_log else 'linear',
+            hovermode='x unified'
+        )
         
-        plt.tight_layout()
+        if use_log:
+            fig.update_yaxes(
+                tickformat='.0f',
+                ticktext=[f'R${x/1e3:.0f}k' if x < 1e6 else f'R${x/1e6:.1f}M' 
+                         for x in fig.data[0].y if len(fig.data[0].y) > 0]
+            )
         
         if save:
-            output_path = self.plots_output_path / "tax_trends.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "tax_trends", save=True)
         
         return fig
     
-    def plot_top_tax_neighborhoods(self, top_n: int = 20, save: bool = True) -> Optional[plt.Figure]:
+    def plot_top_tax_neighborhoods(self, top_n: int = 20, save: bool = True) -> Optional[go.Figure]:
         """Plot top neighborhoods by average tax value."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("tax_value_analysis", "avg_tax_by_neighborhood_top20.csv")
@@ -386,114 +584,151 @@ class IPTUVizualizer:
         
         df_top = df.head(top_n).sort_values("media", ascending=True)
         
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig = go.Figure()
         
-        bars = ax.barh(df_top["bairro"], df_top["media"], color='crimson', alpha=0.7)
-        ax.set_xlabel("Valor Médio de IPTU (R$)", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Bairro", fontsize=12, fontweight='bold')
-        ax.set_title(f"Top {top_n} Bairros por Valor Médio de IPTU", 
-                    fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='x', alpha=0.3)
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
+        fig.add_trace(go.Bar(
+            y=df_top["bairro"],
+            x=df_top["media"],
+            orientation='h',
+            text=[f'R$ {row["media"]:,.0f} (n={int(row["count"]):,})' 
+                  for _, row in df_top.iterrows()],
+            textposition='outside',
+            marker=dict(
+                color=COLOR_PALETTE['diverging'][5],
+                line=dict(color=COLOR_PALETTE['diverging'][7], width=1.5),
+                colorscale='Reds'
+            ),
+            hovertemplate='<b>%{y}</b><br>Valor Médio: R$ %{x:,.0f}<br>Quantidade: %{customdata:,}<extra></extra>',
+            customdata=df_top["count"]
+        ))
         
-        # Add value labels
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            count = int(df_top.iloc[i]["count"])
-            ax.text(width, bar.get_y() + bar.get_height()/2.,
-                   f'R$ {width:,.0f} (n={count:,})',
-                   ha='left', va='center', fontweight='bold')
+        fig.update_layout(
+            title={
+                'text': f"Top {top_n} Bairros por Valor Médio de IPTU",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Valor Médio de IPTU (R$)",
+            yaxis_title="Bairro",
+            template=PLOT_TEMPLATE,
+            height=max(400, top_n * 25),
+            showlegend=False,
+            hovermode='y unified'
+        )
         
-        plt.tight_layout()
+        fig.update_xaxes(tickformat='$,.0f', tickprefix='R$ ')
         
         if save:
-            output_path = self.plots_output_path / "top_tax_neighborhoods.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "top_tax_neighborhoods", save=True)
         
         return fig
     
-    def plot_distribution_by_construction(self, save: bool = True) -> Optional[plt.Figure]:
+    def plot_distribution_by_construction(self, save: bool = True) -> Optional[go.Figure]:
         """Plot distribution by construction type."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("distribution_analysis", "distribution_by_construction.csv")
         if df.empty:
             return None
         
-        fig, ax = plt.subplots(figsize=(14, 7))
-        
         df = df.sort_values("quantidade", ascending=False)
-        bars = ax.bar(range(len(df)), df["quantidade"], color='purple', alpha=0.7, edgecolor='darkblue', linewidth=1.5)
-        ax.set_xticks(range(len(df)))
-        labels = ax.set_xticklabels(df["tipo_construcao"], rotation=45, fontsize=9)
-        # Adjust label alignment
-        for label in labels:
-            label.set_ha('right')
-        ax.set_xlabel("Tipo de Construção", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Quantidade", fontsize=12, fontweight='bold')
-        ax.set_title("Distribuição de Imóveis por Tipo de Construção", 
-                    fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='y', alpha=0.3)
         
-        # Add value labels
-        for i, bar in enumerate(bars):
-            height = bar.get_height()
-            pct = df.iloc[i]["percentual"]
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height):,}\n({pct:.1f}%)',
-                   ha='center', va='bottom', fontweight='bold', fontsize=8)
+        fig = go.Figure()
         
-        # Adjust layout to prevent label cutoff
-        plt.subplots_adjust(bottom=0.25, top=0.92)
-        plt.tight_layout()
+        fig.add_trace(go.Bar(
+            x=df["tipo_construcao"],
+            y=df["quantidade"],
+            text=[f'{int(row["quantidade"]):,}<br>({row["percentual"]:.1f}%)' 
+                  for _, row in df.iterrows()],
+            textposition='outside',
+            marker=dict(
+                color=COLOR_PALETTE['primary'][4],
+                line=dict(color=COLOR_PALETTE['primary'][1], width=1.5)
+            ),
+            hovertemplate='<b>%{x}</b><br>Quantidade: %{y:,}<br>Percentual: %{customdata:.2f}%<extra></extra>',
+            customdata=df["percentual"]
+        ))
+        
+        fig.update_layout(
+            title={
+                'text': "Distribuição de Imóveis por Tipo de Construção",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Tipo de Construção",
+            yaxis_title="Quantidade",
+            template=PLOT_TEMPLATE,
+            height=600,
+            showlegend=False,
+            hovermode='x unified',
+            xaxis_tickangle=-45
+        )
         
         if save:
-            output_path = self.plots_output_path / "distribution_by_construction.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "distribution_by_construction", save=True)
         
         return fig
     
-    def plot_temporal_distribution(self, save: bool = True) -> Optional[plt.Figure]:
+    def plot_temporal_distribution(self, save: bool = True) -> Optional[go.Figure]:
         """Plot temporal distribution of properties."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("distribution_analysis", "distribution_by_year.csv")
         if df.empty:
             return None
         
-        fig, ax = plt.subplots(figsize=(12, 6))
+        fig = go.Figure()
         
-        ax.plot(df["ano"], df["quantidade"], marker='o', linewidth=3, 
-               markersize=10, color='darkblue', markerfacecolor='lightblue',
-               markeredgewidth=2, markeredgecolor='darkblue')
-        ax.fill_between(df["ano"], df["quantidade"], alpha=0.3, color='lightblue')
-        ax.set_xlabel("Ano", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Quantidade de Imóveis", fontsize=12, fontweight='bold')
-        ax.set_title("Distribuição Temporal de Imóveis", fontsize=14, fontweight='bold', pad=20)
-        ax.grid(alpha=0.3)
+        fig.add_trace(go.Scatter(
+            x=df["ano"],
+            y=df["quantidade"],
+            mode='lines+markers+text',
+            name='Quantidade',
+            text=[f'{int(row["quantidade"]):,}<br>({row["percentual"]:.1f}%)' 
+                  for _, row in df.iterrows()],
+            textposition='top center',
+            line=dict(
+                color=COLOR_PALETTE['primary'][0],
+                width=3
+            ),
+            marker=dict(
+                size=12,
+                color=COLOR_PALETTE['primary'][1],
+                line=dict(width=2, color=COLOR_PALETTE['primary'][0])
+            ),
+            fill='tozeroy',
+            fillcolor='rgba(31, 119, 180, 0.3)',
+            hovertemplate='<b>Ano:</b> %{x}<br>Quantidade: %{y:,}<br>Percentual: %{customdata:.2f}%<extra></extra>',
+            customdata=df["percentual"]
+        ))
         
-        # Add value labels
-        for _, row in df.iterrows():
-            ax.text(row["ano"], row["quantidade"],
-                   f'{int(row["quantidade"]):,}\n({row["percentual"]:.1f}%)',
-                   ha='center', va='bottom', fontweight='bold', fontsize=9)
-        
-        plt.tight_layout()
+        fig.update_layout(
+            title={
+                'text': "Distribuição Temporal de Imóveis",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Ano",
+            yaxis_title="Quantidade de Imóveis",
+            template=PLOT_TEMPLATE,
+            height=500,
+            showlegend=False,
+            hovermode='x unified'
+        )
         
         if save:
-            output_path = self.plots_output_path / "temporal_distribution.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "temporal_distribution", save=True)
         
         return fig
     
-    def plot_age_distribution(self, save: bool = True) -> Optional[plt.Figure]:
+    def plot_age_distribution(self, save: bool = True) -> Optional[go.Figure]:
         """Plot distribution of properties by construction age ranges."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("age_analysis", "age_distribution_by_range.csv")
@@ -510,50 +745,84 @@ class IPTUVizualizer:
         df["order"] = df["faixa_idade"].apply(lambda x: age_order.index(x) if x in age_order else 999)
         df = df.sort_values("order")
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+        # Create subplots
+        from plotly.subplots import make_subplots
+        fig = make_subplots(
+            rows=1, cols=2,
+            specs=[[{"type": "bar"}, {"type": "pie"}]],
+            subplot_titles=(
+                "Distribuição por Faixas de Idade de Construção",
+                "Distribuição Percentual por Idade"
+            )
+        )
         
         # Bar chart
-        colors = sns.color_palette("viridis", len(df))
-        bars = ax1.bar(df["faixa_idade"], df["quantidade"], color=colors, alpha=0.7, edgecolor='darkblue', linewidth=1.5)
-        ax1.set_xlabel("Faixa de Idade", fontsize=12, fontweight='bold')
-        ax1.set_ylabel("Quantidade de Imóveis", fontsize=12, fontweight='bold')
-        ax1.set_title("Distribuição por Faixas de Idade de Construção", fontsize=14, fontweight='bold')
-        ax1.grid(axis='y', alpha=0.3)
-        ax1.tick_params(axis='x', labelsize=9)
-        # Rotate and align labels
-        for label in ax1.get_xticklabels():
-            label.set_rotation(45)
-            label.set_ha('right')
+        colors = COLOR_PALETTE['sequential'][::len(COLOR_PALETTE['sequential'])//len(df)][:len(df)]
+        fig.add_trace(
+            go.Bar(
+                x=df["faixa_idade"],
+                y=df["quantidade"],
+                text=[f'{int(x):,}' for x in df["quantidade"]],
+                textposition='outside',
+                marker=dict(
+                    color=colors,
+                    line=dict(color=COLOR_PALETTE['primary'][1], width=1.5)
+                ),
+                hovertemplate='<b>%{x}</b><br>Quantidade: %{y:,}<br>Percentual: %{customdata:.2f}%<extra></extra>',
+                customdata=df["percentual"]
+            ),
+            row=1, col=1
+        )
         
-        # Add value labels
-        for bar in bars:
-            height = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height):,}',
-                   ha='center', va='bottom', fontweight='bold', fontsize=9)
+        # Pie chart
+        fig.add_trace(
+            go.Pie(
+                labels=df["faixa_idade"],
+                values=df["quantidade"],
+                marker=dict(colors=colors),
+                textinfo='label+percent',
+                hovertemplate='<b>%{label}</b><br>Quantidade: %{value:,}<br>Percentual: %{percent}<extra></extra>'
+            ),
+            row=1, col=2
+        )
         
-        # Pie chart with direct labels
-        wedges, texts, autotexts = ax2.pie(df["quantidade"], labels=df["faixa_idade"], autopct='%1.1f%%',
-               startangle=90, colors=colors, textprops={'fontsize': 8})
-        ax2.set_title("Distribuição Percentual por Idade", fontsize=14, fontweight='bold')
+        fig.update_layout(
+            template=PLOT_TEMPLATE,
+            height=600,
+            showlegend=False,
+            title_text="Distribuição de Imóveis por Faixas de Idade de Construção",
+            title_x=0.5
+        )
         
-        # Adjust layout to prevent label cutoff
-        plt.subplots_adjust(bottom=0.15, right=0.85)
-        plt.tight_layout()
+        fig.update_xaxes(title_text="Faixa de Idade", row=1, col=1, tickangle=-45)
+        fig.update_yaxes(title_text="Quantidade de Imóveis", row=1, col=1)
         
         if save:
-            output_path = self.plots_output_path / "age_distribution.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "age_distribution", save=True)
         
         return fig
     
-    def plot_age_value_relationship(self, save: bool = True) -> Optional[plt.Figure]:
-        """Plot relationship between construction age and IPTU value."""
-        if not MATPLOTLIB_AVAILABLE:
+    def plot_age_value_relationship(self, save: bool = True) -> Optional[go.Figure]:
+        """
+        Plot relationship between construction age, quantity and IPTU value.
+        Uses data from gold layer. Creates a grouped bar chart showing both metrics.
+        """
+        if not PLOTLY_AVAILABLE:
             return None
         
+        # Try to load from gold layer CSV first (analysis output)
         df = self.load_analysis_data("age_value_analysis", "age_value_relationship.csv")
+        
+        # If not found in CSV, try to load from gold layer parquet if available
+        if df.empty:
+            from iptu_pipeline.config import GOLD_DIR
+            gold_path = GOLD_DIR / "analyses" / "age_value_analysis" / "age_value_relationship.parquet"
+            if gold_path.exists():
+                df = self.load_from_gold(gold_path)
+            else:
+                logger.warning(f"Age-value relationship data not found in gold layer. Run pipeline to generate it.")
+                return None
+        
         if df.empty:
             return None
         
@@ -562,266 +831,213 @@ class IPTUVizualizer:
         df["order"] = df["faixa_idade"].apply(lambda x: age_order.index(x) if x in age_order else 999)
         df = df.sort_values("order")
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+        # Create a grouped bar chart with secondary y-axis
+        from plotly.subplots import make_subplots
         
-        # Bar chart - Average value by age
-        colors = sns.color_palette("coolwarm", len(df))
-        bars = ax1.bar(df["faixa_idade"], df["valor_medio"], color=colors, alpha=0.7, edgecolor='darkblue', linewidth=1.5)
-        ax1.set_xlabel("Faixa de Idade (anos)", fontsize=12, fontweight='bold')
-        ax1.set_ylabel("Valor Médio de IPTU (R$)", fontsize=12, fontweight='bold')
-        ax1.set_title("Valor Médio de IPTU por Faixa de Idade", fontsize=14, fontweight='bold', pad=15)
-        ax1.grid(axis='y', alpha=0.3)
-        # Rotate and align labels
-        for label in ax1.get_xticklabels():
-            label.set_rotation(45)
-            label.set_ha('right')
-        ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # Add value labels with better positioning
-        for bar in bars:
-            height = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2., height,
-                   f'R$ {height:,.0f}',
-                   ha='center', va='bottom', fontweight='bold', fontsize=9,
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor='gray'))
+        # Add valor medio bars
+        fig.add_trace(
+            go.Bar(
+                x=df["faixa_idade"],
+                y=df["valor_medio"],
+                name='Valor Médio de IPTU',
+                text=[f'R$ {x:,.0f}' for x in df["valor_medio"]],
+                textposition='outside',
+                marker=dict(
+                    color=COLOR_PALETTE['primary'][0],
+                    line=dict(color=COLOR_PALETTE['primary'][1], width=1.5)
+                ),
+                hovertemplate='<b>%{x}</b><br>Valor Médio: R$ %{y:,.0f}<extra></extra>'
+            ),
+            secondary_y=False
+        )
         
-        # Scatter plot - Value vs Quantity with proper scaling and legend
-        # Normalize sizes for better visualization
-        size_normalized = (df["quantidade"] / df["quantidade"].max() * 500) + 100
+        # Add quantidade bars on secondary y-axis
+        fig.add_trace(
+            go.Bar(
+                x=df["faixa_idade"],
+                y=df["quantidade"],
+                name='Quantidade de Imóveis',
+                text=[f'{int(x):,}' for x in df["quantidade"]],
+                textposition='outside',
+                marker=dict(
+                    color=COLOR_PALETTE['primary'][2],
+                    line=dict(color=COLOR_PALETTE['primary'][3], width=1.5),
+                    opacity=0.7
+                ),
+                hovertemplate='<b>%{x}</b><br>Quantidade: %{y:,}<extra></extra>'
+            ),
+            secondary_y=True
+        )
         
-        scatter = ax2.scatter(df["quantidade"], df["valor_medio"], 
-                            s=size_normalized, c=range(len(df)), 
-                            cmap='viridis', alpha=0.7, edgecolors='darkblue', 
-                            linewidth=2, label='Faixas de Idade')
+        fig.update_layout(
+            title={
+                'text': "Relação: Quantidade vs Valor Médio por Faixa de Idade",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Faixa de Idade de Construção (anos)",
+            template=PLOT_TEMPLATE,
+            height=600,
+            barmode='group',
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            hovermode='x unified'
+        )
         
-        ax2.set_xlabel("Quantidade de Imóveis", fontsize=12, fontweight='bold')
-        ax2.set_ylabel("Valor Médio de IPTU (R$)", fontsize=12, fontweight='bold')
-        ax2.set_title("Relação: Quantidade vs Valor Médio\n(Tamanho = Quantidade)", 
-                     fontsize=14, fontweight='bold', pad=15)
-        ax2.grid(alpha=0.3, linestyle='--')
-        ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'R$ {x:,.0f}'))
-        ax2.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}'))
-        
-        # Add colorbar for age ranges
-        cbar = plt.colorbar(scatter, ax=ax2, pad=0.02)
-        cbar.set_label('Ordem de Faixa de Idade', fontsize=10, fontweight='bold')
-        cbar.set_ticks(range(len(df)))
-        cbar.set_ticklabels(df["faixa_idade"].values)
-        
-        # Add legend for bubble size (quantity)
-        # Create proxy artists for size legend
-        min_qty = df["quantidade"].min()
-        max_qty = df["quantidade"].max()
-        size_legend_elements = [
-            plt.scatter([], [], s=(min_qty/max_qty * 500) + 100, c='gray', alpha=0.7, edgecolors='black', 
-                       label=f'Quantidade: {min_qty:,.0f}'),
-            plt.scatter([], [], s=(max_qty/max_qty * 500) + 100, c='gray', alpha=0.7, edgecolors='black',
-                       label=f'Quantidade: {max_qty:,.0f}')
-        ]
-        ax2.legend(handles=size_legend_elements, loc='upper right', frameon=True, 
-                  shadow=True, title='Tamanho da Bolha', title_fontsize=9, fontsize=8)
-        
-        # Add labels for each point with better positioning
-        for _, row in df.iterrows():
-            # Adjust annotation position based on quadrant
-            offset_x = (row["quantidade"] * 0.02)
-            offset_y = (row["valor_medio"] * 0.02)
-            ax2.annotate(row["faixa_idade"], 
-                        (row["quantidade"], row["valor_medio"]),
-                        xytext=(offset_x, offset_y), textcoords='offset points', 
-                        fontsize=9, fontweight='bold',
-                        bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7, edgecolor='black'))
-        
-        # Adjust layout to optimize space usage and prevent label cutoff
-        plt.subplots_adjust(bottom=0.12, left=0.10, right=0.92, top=0.90, wspace=0.25)
-        plt.tight_layout()
+        fig.update_yaxes(title_text="Valor Médio de IPTU (R$)", secondary_y=False, tickformat='$,.0f', tickprefix='R$ ')
+        fig.update_yaxes(title_text="Quantidade de Imóveis", secondary_y=True, tickformat=',.0f')
         
         if save:
-            output_path = self.plots_output_path / "age_value_relationship.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight', pad_inches=0.2)
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "age_value_relationship", save=True)
         
         return fig
     
-    def plot_neighborhood_growth_quantity(self, top_n: int = 15, save: bool = True) -> Optional[plt.Figure]:
+    def plot_neighborhood_growth_quantity(self, top_n: int = 15, save: bool = True) -> Optional[go.Figure]:
         """Plot top neighborhoods by quantity growth."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("evolution_analysis", "top_growth_quantity.csv")
         if df.empty:
             return None
         
-        # Filter to show only positive growth (real growth, not decline)
-        # Only include neighborhoods with actual growth (positive values)
+        # Filter to show only positive growth
         df_positive = df[df["crescimento_quantidade"] > 0].sort_values("crescimento_quantidade", ascending=False)
         
         if len(df_positive) == 0:
             logger.warning("No positive growth found. Showing neighborhoods with smallest decline.")
-            # If no positive growth, show least negative (smallest decline)
             df_negative = df[df["crescimento_quantidade"] <= 0].sort_values("crescimento_quantidade", ascending=True)
             df_top = df_negative.head(top_n)
         else:
-            # Take top N positive growth values
             df_top = df_positive.head(top_n)
         
-        # For visualization, sort ascending so bars go from smallest to largest (top to bottom)
         df_top = df_top.sort_values("crescimento_quantidade", ascending=True)
         
-        fig, ax = plt.subplots(figsize=(14, 10))
+        # Colors for positive/negative growth
+        colors = [COLOR_PALETTE['diverging'][8] if x < 0 else COLOR_PALETTE['diverging'][2] 
+                 for x in df_top["crescimento_quantidade"]]
         
-        # Use different colors for positive/negative growth
-        colors = ['crimson' if x < 0 else 'mediumseagreen' for x in df_top["crescimento_quantidade"]]
+        fig = go.Figure()
         
-        bars = ax.barh(df_top["bairro"], df_top["crescimento_quantidade"], color=colors, alpha=0.7, edgecolor='darkblue', linewidth=1.5)
-        ax.set_xlabel("Crescimento em Quantidade (%)", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Bairro", fontsize=12, fontweight='bold')
-        ax.set_title(f"Top {top_n} Bairros com Maior Crescimento em Número de Imóveis", 
-                    fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='x', alpha=0.3)
-        ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
+        fig.add_trace(go.Bar(
+            y=df_top["bairro"],
+            x=df_top["crescimento_quantidade"],
+            orientation='h',
+            text=[f'{row["crescimento_quantidade"]:.1f}%<br>({int(row["quantidade_inicial"]):,}→{int(row["quantidade_final"]):,})' 
+                  for _, row in df_top.iterrows()],
+            textposition='outside',
+            marker=dict(
+                color=colors,
+                line=dict(color=COLOR_PALETTE['primary'][1], width=1.5)
+            ),
+            hovertemplate='<b>%{y}</b><br>Crescimento: %{x:.2f}%<br>Inicial: %{customdata[0]:,}<br>Final: %{customdata[1]:,}<extra></extra>',
+            customdata=df_top[["quantidade_inicial", "quantidade_final"]].values
+        ))
         
-        # Calculate x-axis limits with padding for labels
-        x_min = df_top["crescimento_quantidade"].min()
-        x_max = df_top["crescimento_quantidade"].max()
-        x_range = x_max - x_min
-        padding_right = max(abs(x_range * 0.20), 5)  # 20% padding on right
-        padding_left = max(abs(x_range * 0.25), 10)   # 25% padding on left (more for negative values)
-        
-        # Set x-axis limits with padding
-        ax.set_xlim(x_min - padding_left, x_max + padding_right)
-        
-        # Add value labels positioned to avoid collision with y-axis
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            initial = int(df_top.iloc[i]["quantidade_inicial"])
-            final = int(df_top.iloc[i]["quantidade_final"])
-            
-            # Position labels on the bars (not at the edge to avoid collision with y-axis)
-            if width > 0:
-                # Positive growth: label on the right edge of the bar
-                label_x = width + (x_max + padding_right - width) * 0.02
-                ha_pos = 'left'
-            else:
-                # Negative growth: label on the right edge of the bar (for negative bars)
-                # Position at a safe distance from y-axis (using bar end + small offset)
-                label_x = width + abs(x_min - padding_left - width) * 0.15
-                ha_pos = 'left'  # Always left-aligned to avoid collision
-            
-            # Shorten label text to prevent overflow
-            label_text = f'{width:.1f}%\n({initial:,}→{final:,})'
-            
-            ax.text(label_x, bar.get_y() + bar.get_height()/2.,
-                   label_text,
-                   ha=ha_pos, va='center', 
-                   fontweight='bold', fontsize=8,
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor='gray'))
-        
-        # Adjust layout to prevent label cutoff - more space on left for y-axis labels
-        plt.subplots_adjust(left=0.20, right=0.85, top=0.92, bottom=0.08)
-        plt.tight_layout()
+        fig.update_layout(
+            title={
+                'text': f"Top {top_n} Bairros com Maior Crescimento em Número de Imóveis",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Crescimento em Quantidade (%)",
+            yaxis_title="Bairro",
+            template=PLOT_TEMPLATE,
+            height=max(500, top_n * 30),
+            showlegend=False,
+            hovermode='y unified',
+            shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_top)-0.5, 
+                        line=dict(color='black', width=2, dash='dash'))]
+        )
         
         if save:
-            output_path = self.plots_output_path / "neighborhood_growth_quantity.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight', pad_inches=0.2)
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "neighborhood_growth_quantity", save=True)
         
         return fig
     
-    def plot_neighborhood_growth_value(self, top_n: int = 15, save: bool = True) -> Optional[plt.Figure]:
+    def plot_neighborhood_growth_value(self, top_n: int = 15, save: bool = True) -> Optional[go.Figure]:
         """Plot top neighborhoods by value growth."""
-        if not MATPLOTLIB_AVAILABLE:
+        if not PLOTLY_AVAILABLE:
             return None
         
         df = self.load_analysis_data("evolution_analysis", "top_growth_value.csv")
         if df.empty:
             return None
         
-        # Filter to show only positive growth (real growth, not decline)
-        # Only include neighborhoods with actual growth (positive values)
+        # Filter to show only positive growth
         df_positive = df[df["crescimento_valor"] > 0].sort_values("crescimento_valor", ascending=False)
         
         if len(df_positive) == 0:
             logger.warning("No positive growth found. Showing neighborhoods with smallest decline.")
-            # If no positive growth, show least negative (smallest decline)
             df_negative = df[df["crescimento_valor"] <= 0].sort_values("crescimento_valor", ascending=True)
             df_top = df_negative.head(top_n)
         else:
-            # Take top N positive growth values
             df_top = df_positive.head(top_n)
         
-        # For visualization, sort ascending so bars go from smallest to largest (top to bottom)
         df_top = df_top.sort_values("crescimento_valor", ascending=True)
         
-        fig, ax = plt.subplots(figsize=(14, 10))
-        
-        # Use gradient colors
-        colors = sns.color_palette("RdYlGn", len(df_top))
-        bars = ax.barh(df_top["bairro"], df_top["crescimento_valor"], color=colors, alpha=0.7, edgecolor='darkblue', linewidth=1.5)
-        ax.set_xlabel("Crescimento em Valor Médio (%)", fontsize=12, fontweight='bold')
-        ax.set_ylabel("Bairro", fontsize=12, fontweight='bold')
-        ax.set_title(f"Top {top_n} Bairros com Maior Crescimento em Valor Médio de IPTU", 
-                    fontsize=14, fontweight='bold', pad=20)
-        ax.grid(axis='x', alpha=0.3)
-        ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
-        
-        # Calculate x-axis limits with padding for labels
-        x_min = df_top["crescimento_valor"].min()
-        x_max = df_top["crescimento_valor"].max()
-        x_range = x_max - x_min
-        padding_right = max(abs(x_range * 0.20), 5)  # 20% padding on right
-        padding_left = max(abs(x_range * 0.25), 10)   # 25% padding on left (more for negative values)
-        
-        # Set x-axis limits with padding
-        ax.set_xlim(x_min - padding_left, x_max + padding_right)
-        
-        # Add value labels positioned to avoid collision with y-axis
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            initial = df_top.iloc[i]["valor_medio_inicial"]
-            final = df_top.iloc[i]["valor_medio_final"]
-            
-            # Position labels on the bars (not at the edge to avoid collision with y-axis)
-            if width > 0:
-                # Positive growth: label on the right edge of the bar
-                label_x = width + (x_max + padding_right - width) * 0.02
-                ha_pos = 'left'
+        # Format currency helper
+        def format_currency(value):
+            if abs(value) >= 1e6:
+                return f'R${value/1e6:.1f}M'
+            elif abs(value) >= 1e3:
+                return f'R${value/1e3:.0f}k'
             else:
-                # Negative growth: label on the right edge of the bar (for negative bars)
-                # Position at a safe distance from y-axis (using bar end + small offset)
-                label_x = width + abs(x_min - padding_left - width) * 0.15
-                ha_pos = 'left'  # Always left-aligned to avoid collision
-            
-            # Format values in shorter form (k for thousands, M for millions)
-            def format_currency(value):
-                if abs(value) >= 1e6:
-                    return f'R${value/1e6:.1f}M'
-                elif abs(value) >= 1e3:
-                    return f'R${value/1e3:.0f}k'
-                else:
-                    return f'R${value:,.0f}'
-            
-            # Shorten label text to prevent overflow
-            label_text = f'{width:.1f}%\n({format_currency(initial)}→{format_currency(final)})'
-            
-            ax.text(label_x, bar.get_y() + bar.get_height()/2.,
-                   label_text,
-                   ha=ha_pos, va='center', 
-                   fontweight='bold', fontsize=8,
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor='gray'))
+                return f'R${value:,.0f}'
         
-        # Adjust layout to prevent label cutoff - more space on left for y-axis labels
-        plt.subplots_adjust(left=0.20, right=0.85, top=0.92, bottom=0.08)
-        plt.tight_layout()
+        # Colors for positive/negative growth
+        colors = [COLOR_PALETTE['diverging'][8] if x < 0 else COLOR_PALETTE['diverging'][2] 
+                 for x in df_top["crescimento_valor"]]
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            y=df_top["bairro"],
+            x=df_top["crescimento_valor"],
+            orientation='h',
+            text=[f'{row["crescimento_valor"]:.1f}%<br>({format_currency(row["valor_medio_inicial"])}→{format_currency(row["valor_medio_final"])})' 
+                  for _, row in df_top.iterrows()],
+            textposition='outside',
+            marker=dict(
+                color=colors,
+                line=dict(color=COLOR_PALETTE['primary'][1], width=1.5)
+            ),
+            hovertemplate='<b>%{y}</b><br>Crescimento: %{x:.2f}%<br>Inicial: R$ %{customdata[0]:,.0f}<br>Final: R$ %{customdata[1]:,.0f}<extra></extra>',
+            customdata=df_top[["valor_medio_inicial", "valor_medio_final"]].values
+        ))
+        
+        fig.update_layout(
+            title={
+                'text': f"Top {top_n} Bairros com Maior Crescimento em Valor Médio de IPTU",
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title="Crescimento em Valor Médio (%)",
+            yaxis_title="Bairro",
+            template=PLOT_TEMPLATE,
+            height=max(500, top_n * 30),
+            showlegend=False,
+            hovermode='y unified',
+            shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_top)-0.5, 
+                        line=dict(color='black', width=2, dash='dash'))]
+        )
         
         if save:
-            output_path = self.plots_output_path / "neighborhood_growth_value.png"
-            plt.savefig(output_path, dpi=300, bbox_inches='tight', pad_inches=0.2)
-            logger.info(f"Saved plot: {output_path}")
+            self._save_plot(fig, "neighborhood_growth_value", save=True)
         
         return fig
     
-    def generate_all_plots(self, close_figs: bool = True) -> Dict[str, Optional[plt.Figure]]:
+    def generate_all_plots(self, close_figs: bool = True) -> Dict[str, Optional[go.Figure]]:
         """
         Generate all available plots.
         
@@ -849,10 +1065,8 @@ class IPTUVizualizer:
             plots["neighborhood_growth_quantity"] = self.plot_neighborhood_growth_quantity()
             plots["neighborhood_growth_value"] = self.plot_neighborhood_growth_value()
             
-            if close_figs and MATPLOTLIB_AVAILABLE:
-                for fig in plots.values():
-                    if fig is not None:
-                        plt.close(fig)
+            # Note: Plotly figures don't need to be closed like matplotlib
+            # They are automatically managed by Plotly
             
             logger.info(f"[OK] Generated {len([p for p in plots.values() if p is not None])} plots")
             
@@ -908,12 +1122,15 @@ class IPTUVizualizer:
         
         for plot_name, fig in plots.items():
             if plot_name in plot_titles and fig is not None:
-                plot_path = self.plots_output_path / f"{plot_name}.png"
+                plot_path = self.plots_output_path / f"{plot_name}.html"
                 if plot_path.exists():
+                    # Embed Plotly HTML directly
+                    with open(plot_path, 'r', encoding='utf-8') as f:
+                        plot_html = f.read()
                     html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">{plot_titles.get(plot_name, plot_name)}</div>
-                        <img src="{plot_path.name}" alt="{plot_name}">
+                        {plot_html}
                     </div>
                     """
         
@@ -932,23 +1149,27 @@ class IPTUVizualizer:
         
         for plot_name, fig in plots.items():
             if plot_name in tax_plot_titles and fig is not None:
-                plot_path = self.plots_output_path / f"{plot_name}.png"
+                plot_path = self.plots_output_path / f"{plot_name}.html"
                 if plot_path.exists():
+                    with open(plot_path, 'r', encoding='utf-8') as f:
+                        plot_html_tax = f.read()
                     html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">{tax_plot_titles.get(plot_name, plot_name)}</div>
-                        <img src="{plot_path.name}" alt="{plot_name}">
+                        {plot_html_tax}
                     </div>
                     """
                     added_plots.add(plot_name)
         
         # Include boxplot if file exists but wasn't added in the loop above (fix for missing boxplot)
-        plot_path = self.plots_output_path / "tax_trends.png"
+        plot_path = self.plots_output_path / "tax_trends.html"
         if plot_path.exists() and "tax_trends" not in added_plots:
+            with open(plot_path, 'r', encoding='utf-8') as f:
+                plot_html = f.read()
             html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">Tendências de Valores de IPTU (Boxplot)</div>
-                        <img src="{plot_path.name}" alt="tax_trends">
+                        {plot_html}
                     </div>
                     """
         
@@ -958,12 +1179,14 @@ class IPTUVizualizer:
         """
         
         # Include visualization if available
-        plot_path = self.plots_output_path / "age_distribution.png"
+        plot_path = self.plots_output_path / "age_distribution.html"
         if plot_path.exists():
+            with open(plot_path, 'r', encoding='utf-8') as f:
+                plot_html = f.read()
             html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">Distribuição por Faixas de Idade de Construção</div>
-                        <img src="{plot_path.name}" alt="age_distribution">
+                        {plot_html}
                     </div>
                     """
         
@@ -998,12 +1221,14 @@ class IPTUVizualizer:
         """
         
         # Include visualization if available
-        plot_path = self.plots_output_path / "age_value_relationship.png"
+        plot_path = self.plots_output_path / "age_value_relationship.html"
         if plot_path.exists():
+            with open(plot_path, 'r', encoding='utf-8') as f:
+                plot_html = f.read()
             html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">Relação entre Idade de Construção e Valor de IPTU</div>
-                        <img src="{plot_path.name}" alt="age_value_relationship">
+                        {plot_html}
                     </div>
                     """
         
@@ -1037,22 +1262,26 @@ class IPTUVizualizer:
         """
         
         # Include visualization for quantity growth if available
-        plot_path_qty = self.plots_output_path / "neighborhood_growth_quantity.png"
+        plot_path_qty = self.plots_output_path / "neighborhood_growth_quantity.html"
         if plot_path_qty.exists():
+            with open(plot_path_qty, 'r', encoding='utf-8') as f:
+                plot_html_qty = f.read()
             html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">Top Bairros com Maior Crescimento em Número de Imóveis</div>
-                        <img src="{plot_path_qty.name}" alt="neighborhood_growth_quantity">
+                        {plot_html_qty}
                     </div>
                     """
         
         # Include visualization for value growth if available
-        plot_path_val = self.plots_output_path / "neighborhood_growth_value.png"
+        plot_path_val = self.plots_output_path / "neighborhood_growth_value.html"
         if plot_path_val.exists():
+            with open(plot_path_val, 'r', encoding='utf-8') as f:
+                plot_html_val = f.read()
             html_content += f"""
                     <div class="plot-section">
                         <div class="plot-title">Top Bairros com Maior Crescimento em Valor Médio</div>
-                        <img src="{plot_path_val.name}" alt="neighborhood_growth_value">
+                        {plot_html_val}
                     </div>
                     """
         
@@ -1115,9 +1344,7 @@ class IPTUVizualizer:
         
         logger.info(f"[OK] HTML report created: {output_path}")
         
-        # Close all figures
-        if MATPLOTLIB_AVAILABLE:
-            plt.close('all')
+        # Note: Plotly figures don't need to be closed like matplotlib
         
         return output_path
 
@@ -1137,7 +1364,7 @@ def generate_plots_from_analysis_results(analysis_path: Optional[Path] = None) -
     html_report = viz.create_summary_report_html()
     
     plot_files = {}
-    for plot_file in viz.plots_output_path.glob("*.png"):
+    for plot_file in viz.plots_output_path.glob("*.html"):
         plot_files[plot_file.stem] = plot_file
     
     plot_files["html_report"] = html_report

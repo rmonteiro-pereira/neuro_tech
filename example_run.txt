@@ -1,7 +1,8 @@
-(neuro-tech) PS neuro_tech> .venv\Scripts\Activate.ps1;$env:IPTU_DATA_ENGINE='pyspark';python main.py
+PS C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech> .venv\Scripts\Activate.ps1;$env:IPTU_DATA_ENGINE='pyspark';python main.py     
 INFO - Starting IPTU Data Pipeline
 INFO - Running pipeline (direct execution mode)
 INFO - For Airflow orchestration, deploy the DAG from airflow_dag.py
+INFO - Local mode optimized: 16 cores, 32 shuffle partitions, 4g driver memory, adaptive execution disabled
 INFO - Delta Lake + PyDeequ configured: JARs loaded + extensions set (manual package combination)
 INFO - Creating Spark session...
 https://repo1.maven.org/maven2 added as a remote repository with the name: repo-1
@@ -11,7 +12,7 @@ Ivy Default Cache set to: C:\Users\Rodrigo\AppData\Local\Temp\.ivy2\cache
 The jars for the packages stored in: C:\Users\Rodrigo\AppData\Local\Temp\.ivy2\jars
 io.delta#delta-spark_2.12 added as a dependency
 com.amazon.deequ#deequ added as a dependency
-:: resolving dependencies :: org.apache.spark#spark-submit-parent-a273182e-f694-467a-8c0c-18bcd23a0f1a;1.0
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-29f23659-08b0-4a41-959d-d79330c255c7;1.0
         confs: [default]
         found io.delta#delta-spark_2.12;3.3.2 in central
         found io.delta#delta-storage;3.3.2 in central
@@ -35,51 +36,7 @@ com.amazon.deequ#deequ added as a dependency
         found org.apache.commons#commons-math3;3.2 in central
         found org.slf4j#slf4j-api;1.7.5 in central
         found org.scala-lang.modules#scala-collection-compat_2.12;2.7.0 in central
-downloading https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.3.2/delta-spark_2.12-3.3.2.jar ...
-        [SUCCESSFUL ] io.delta#delta-spark_2.12;3.3.2!delta-spark_2.12.jar (4902ms)
-downloading https://repo1.maven.org/maven2/com/amazon/deequ/deequ/2.0.8-spark-3.5/deequ-2.0.8-spark-3.5.jar ...
-        [SUCCESSFUL ] com.amazon.deequ#deequ;2.0.8-spark-3.5!deequ.jar (1191ms)
-downloading https://repo1.maven.org/maven2/io/delta/delta-storage/3.3.2/delta-storage-3.3.2.jar ...
-        [SUCCESSFUL ] io.delta#delta-storage;3.3.2!delta-storage.jar (117ms)
-downloading https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.3/antlr4-runtime-4.9.3.jar ...
-        [SUCCESSFUL ] org.antlr#antlr4-runtime;4.9.3!antlr4-runtime.jar (321ms)
-downloading https://repo1.maven.org/maven2/org/scala-lang/scala-reflect/2.12.10/scala-reflect-2.12.10.jar ...
-        [SUCCESSFUL ] org.scala-lang#scala-reflect;2.12.10!scala-reflect.jar (2975ms)
-downloading https://repo1.maven.org/maven2/org/scalanlp/breeze_2.12/2.1.0/breeze_2.12-2.1.0.jar ...
-        [SUCCESSFUL ] org.scalanlp#breeze_2.12;2.1.0!breeze_2.12.jar (10023ms)
-downloading https://repo1.maven.org/maven2/org/scalanlp/breeze-macros_2.12/2.1.0/breeze-macros_2.12-2.1.0.jar ...
-        [SUCCESSFUL ] org.scalanlp#breeze-macros_2.12;2.1.0!breeze-macros_2.12.jar (170ms)
-downloading https://repo1.maven.org/maven2/dev/ludovic/netlib/blas/3.0.1/blas-3.0.1.jar ...
-        [SUCCESSFUL ] dev.ludovic.netlib#blas;3.0.1!blas.jar (233ms)
-downloading https://repo1.maven.org/maven2/dev/ludovic/netlib/lapack/3.0.1/lapack-3.0.1.jar ...
-        [SUCCESSFUL ] dev.ludovic.netlib#lapack;3.0.1!lapack.jar (631ms)
-downloading https://repo1.maven.org/maven2/dev/ludovic/netlib/arpack/3.0.1/arpack-3.0.1.jar ...
-        [SUCCESSFUL ] dev.ludovic.netlib#arpack;3.0.1!arpack.jar (137ms)
-downloading https://repo1.maven.org/maven2/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar ...
-        [SUCCESSFUL ] net.sf.opencsv#opencsv;2.3!opencsv.jar (90ms)
-downloading https://repo1.maven.org/maven2/com/github/wendykierp/JTransforms/3.1/JTransforms-3.1.jar ...
-        [SUCCESSFUL ] com.github.wendykierp#JTransforms;3.1!JTransforms.jar (911ms)
-downloading https://repo1.maven.org/maven2/org/apache/commons/commons-math3/3.2/commons-math3-3.2.jar ...
-        [SUCCESSFUL ] org.apache.commons#commons-math3;3.2!commons-math3.jar (1370ms)
-downloading https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar ...
-        [SUCCESSFUL ] org.slf4j#slf4j-api;1.7.5!slf4j-api.jar (139ms)
-downloading https://repo1.maven.org/maven2/org/scala-lang/modules/scala-collection-compat_2.12/2.7.0/scala-collection-compat_2.12-2.7.0.jar ...
-        [SUCCESSFUL ] org.scala-lang.modules#scala-collection-compat_2.12;2.7.0!scala-collection-compat_2.12.jar (254ms)
-downloading https://repo1.maven.org/maven2/org/typelevel/spire_2.12/0.17.0/spire_2.12-0.17.0.jar ...
-        [SUCCESSFUL ] org.typelevel#spire_2.12;0.17.0!spire_2.12.jar (5988ms)
-downloading https://repo1.maven.org/maven2/org/typelevel/spire-macros_2.12/0.17.0/spire-macros_2.12-0.17.0.jar ...
-        [SUCCESSFUL ] org.typelevel#spire-macros_2.12;0.17.0!spire-macros_2.12.jar (182ms)
-downloading https://repo1.maven.org/maven2/org/typelevel/spire-platform_2.12/0.17.0/spire-platform_2.12-0.17.0.jar ...
-        [SUCCESSFUL ] org.typelevel#spire-platform_2.12;0.17.0!spire-platform_2.12.jar (105ms)
-downloading https://repo1.maven.org/maven2/org/typelevel/spire-util_2.12/0.17.0/spire-util_2.12-0.17.0.jar ...
-        [SUCCESSFUL ] org.typelevel#spire-util_2.12;0.17.0!spire-util_2.12.jar (116ms)
-downloading https://repo1.maven.org/maven2/org/typelevel/algebra_2.12/2.0.1/algebra_2.12-2.0.1.jar ...
-        [SUCCESSFUL ] org.typelevel#algebra_2.12;2.0.1!algebra_2.12.jar (1072ms)
-downloading https://repo1.maven.org/maven2/org/typelevel/cats-kernel_2.12/2.1.1/cats-kernel_2.12-2.1.1.jar ...
-        [SUCCESSFUL ] org.typelevel#cats-kernel_2.12;2.1.1!cats-kernel_2.12.jar (2650ms)
-downloading https://repo1.maven.org/maven2/pl/edu/icm/JLargeArrays/1.5/JLargeArrays-1.5.jar ...
-        [SUCCESSFUL ] pl.edu.icm#JLargeArrays;1.5!JLargeArrays.jar (399ms)
-:: resolution report :: resolve 11046ms :: artifacts dl 33995ms
+:: resolution report :: resolve 405ms :: artifacts dl 31ms
         :: modules in use:
         com.amazon.deequ#deequ;2.0.8-spark-3.5 from central in [default]
         com.github.wendykierp#JTransforms;3.1 from central in [default]
@@ -105,21 +62,21 @@ downloading https://repo1.maven.org/maven2/pl/edu/icm/JLargeArrays/1.5/JLargeArr
         pl.edu.icm#JLargeArrays;1.5 from central in [default]
         :: evicted modules:
         org.scala-lang#scala-reflect;2.12.15 by [org.scala-lang#scala-reflect;2.12.10] in [default]
-        org.scala-lang.modules#scala-collection-compat_2.12;2.2.0 by [org.scala-lang.modules#scala-collection-compat_2.12;2.7.0] in [default]
+        org.scala-lang.modules#scala-collection-compat_2.12;2.2.0 by [org.scala-lang.modules#scala-collection-compat_2.12;2.7.0] in [default]       
         org.apache.commons#commons-math3;3.5 by [org.apache.commons#commons-math3;3.2] in [default]
         ---------------------------------------------------------------------
         |                  |            modules            ||   artifacts   |
         |       conf       | number| search|dwnlded|evicted|| number|dwnlded|
         ---------------------------------------------------------------------
-        |      default     |   25  |   22  |   22  |   3   ||   22  |   22  |
+        |      default     |   25  |   0   |   0   |   3   ||   22  |   0   |
         ---------------------------------------------------------------------
-:: retrieving :: org.apache.spark#spark-submit-parent-a273182e-f694-467a-8c0c-18bcd23a0f1a
+:: retrieving :: org.apache.spark#spark-submit-parent-29f23659-08b0-4a41-959d-d79330c255c7
         confs: [default]
-        22 artifacts copied, 0 already retrieved (41201kB/764ms)
+        0 artifacts copied, 22 already retrieved (0kB/15ms)
 Setting default log level to "WARN".
 To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
 INFO - Spark session created, checking context...
-INFO - Spark session active - Context ID: 2087239581008
+INFO - Spark session active - Context ID: 2037544641936
 INFO - Spark session created - Version: 3.5.5
 INFO - Using PYSPARK engine
 INFO - PyDeequ data quality enabled for medallion architecture
@@ -143,8 +100,9 @@ INFO - Discovered file for year 2022: C:\Users\Rodrigo\Documents\Entrevistas\neu
 INFO - Discovered file for year 2023: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2023\iptu_2023.csv
 INFO - Discovered file for year 2024: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json
 WARNING - Could not get schema snapshot for C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json: All arrays must be of the same length
+INFO - File C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json has changed (MD5 mismatch), updating catalog
 INFO - Scan complete: 5 files cataloged
-INFO - Catalog summary: {'total_files': 5, 'by_status': {'completed': 2, 'failed': 3}, 'by_file_type': {'csv': 4, 'json': 1}, 'total_size_bytes': 1217749409, 'total_size_gb': 1.13}
+INFO - Catalog summary: {'total_files': 5, 'by_status': {'completed': 5}, 'by_file_type': {'csv': 4, 'json': 1}, 'total_size_bytes': 1217749408, 'total_size_gb': 1.13}
 INFO - Saving catalog to disk...
 INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
 INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
@@ -180,11 +138,12 @@ INFO - Marked year 2020 as completed
 INFO - Saving catalog to disk...
 INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
 INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Validating bronze layer for year 2020
-25/11/02 21:36:32 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
-25/11/02 21:36:35 WARN DAGScheduler: Broadcasting large task binary with size 1156.2 KiB
+INFO - [PyDeequ] Starting data quality validation for year 2020 - Bronze Layer
+25/11/03 21:52:42 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
 Unable to map type DateType
-INFO - 
+INFO - [PyDeequ] Profiling completed successfully for year 2020 - Bronze Layer (Rows: 403,915, Columns: 36, Null%: 0.00%)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED for year 2020 - Bronze Layer (Rows: 403,915, Columns: 36, Null%: 0.00%, Errors: 0)
+INFO -
 Processing year 2021 to bronze layer
 INFO - Marked year 2021 as processing
 INFO - Saving catalog to disk...
@@ -211,10 +170,11 @@ INFO - Marked year 2021 as completed
 INFO - Saving catalog to disk...
 INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
 INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Validating bronze layer for year 2021
-25/11/02 21:37:58 WARN DAGScheduler: Broadcasting large task binary with size 1156.9 KiB
+INFO - [PyDeequ] Starting data quality validation for year 2021 - Bronze Layer
 Unable to map type DateType
-INFO - 
+INFO - [PyDeequ] Profiling completed successfully for year 2021 - Bronze Layer (Rows: 407,245, Columns: 36, Null%: 0.00%)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED for year 2021 - Bronze Layer (Rows: 407,245, Columns: 36, Null%: 0.00%, Errors: 0)
+INFO -
 Processing year 2022 to bronze layer
 INFO - Marked year 2022 as processing
 INFO - Saving catalog to disk...
@@ -241,10 +201,11 @@ INFO - Marked year 2022 as completed
 INFO - Saving catalog to disk...
 INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
 INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Validating bronze layer for year 2022
-25/11/02 21:39:13 WARN DAGScheduler: Broadcasting large task binary with size 1156.9 KiB
+INFO - [PyDeequ] Starting data quality validation for year 2022 - Bronze Layer
 Unable to map type DateType
-INFO - 
+INFO - [PyDeequ] Profiling completed successfully for year 2022 - Bronze Layer (Rows: 411,090, Columns: 36, Null%: 0.00%)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED for year 2022 - Bronze Layer (Rows: 411,090, Columns: 36, Null%: 0.00%, Errors: 0)
+INFO -
 Processing year 2023 to bronze layer
 INFO - Marked year 2023 as processing
 INFO - Saving catalog to disk...
@@ -271,10 +232,11 @@ INFO - Marked year 2023 as completed
 INFO - Saving catalog to disk...
 INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
 INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Validating bronze layer for year 2023
-25/11/02 21:40:23 WARN DAGScheduler: Broadcasting large task binary with size 1156.9 KiB
+INFO - [PyDeequ] Starting data quality validation for year 2023 - Bronze Layer
 Unable to map type DateType
-INFO - 
+INFO - [PyDeequ] Profiling completed successfully for year 2023 - Bronze Layer (Rows: 415,029, Columns: 36, Null%: 0.00%)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED for year 2023 - Bronze Layer (Rows: 415,029, Columns: 36, Null%: 0.00%, Errors: 0)
+INFO -
 Processing year 2024 to bronze layer
 INFO - Marked year 2024 as processing
 INFO - Saving catalog to disk...
@@ -302,12 +264,13 @@ INFO - Marked year 2024 as completed
 INFO - Saving catalog to disk...
 INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
 INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Validating bronze layer for year 2024
-25/11/02 21:41:12 WARN DAGScheduler: Broadcasting large task binary with size 1192.2 KiB
+INFO - [PyDeequ] Starting data quality validation for year 2024 - Bronze Layer
 Unable to map type DateType
-INFO - 
+INFO - [PyDeequ] Profiling completed successfully for year 2024 - Bronze Layer (Rows: 500, Columns: 37, Null%: 2.70%)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED for year 2024 - Bronze Layer (Rows: 500, Columns: 37, Null%: 2.70%, Errors: 0)
+INFO -
 [OK] Bronze layer complete: 5 years cataloged
-INFO - 
+INFO -
 ================================================================================
 INFO - [SILVER LAYER] Consolidating Data (All Years)
 INFO - ================================================================================
@@ -315,7 +278,7 @@ INFO - Year 2020: Loaded 403,915 rows, 36 columns from bronze
 INFO - Cleaning and optimizing DataFrame
 INFO - Trimming whitespace from string columns
 INFO - Trimmed 26 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
-INFO - Detected 14 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'bairro', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
+INFO - Detected 13 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura', '_source_file', '_data_layer']
 INFO - [OK] Year 2020 processed for silver layer: 403,915 rows, 37 columns
 INFO - Year 2021: Loaded 407,245 rows, 36 columns from bronze
 INFO - Cleaning and optimizing DataFrame
@@ -348,8 +311,9 @@ INFO -
 Consolidating 5 years into silver layer...
 INFO - Silver layer consolidated: 1,637,779 rows, 38 columns
 INFO - [OK] Silver layer saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\silver\iptu_silver_consolidated
-INFO - Validating silver layer (consolidated data - all years)
+INFO - [PyDeequ] Starting data quality validation - Silver Layer (Consolidated)
 INFO - Silver layer contains data from 5 year(s): [2020.0, 2021.0, 2022.0, 2023.0, 2024.0]
+INFO - [PASS] PyDeequ Data Quality Validation PASSED - Silver Layer (Consolidated) (Rows: 1,637,779, Columns: 38, Duplicate%: 0.02%, Errors: 0)
 INFO - 
 [Saving legacy paths for backward compatibility]
 INFO - [OK] Saved to legacy path: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\outputs\iptu_consolidated.parquet
@@ -364,10 +328,13 @@ INFO - Creating gold output: Summary by Neighborhood
 INFO - [OK] Saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\gold_summary_by_neighborhood
 INFO - Creating gold output: Year-over-Year Trends
 INFO - [OK] Saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\gold_year_over_year_trends
-INFO - Validating gold_summary_by_year_type layer
-INFO - Validating gold_summary_by_neighborhood layer
-INFO - Validating gold_year_over_year_trends layer
-INFO - 
+INFO - [PyDeequ] Starting data quality validation - Gold Layer (gold_summary_by_year_type)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED - Gold Layer (gold_summary_by_year_type) (Rows: 15, Columns: 9, Duplicates: 0, Errors: 0)
+INFO - [PyDeequ] Starting data quality validation - Gold Layer (gold_summary_by_neighborhood)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED - Gold Layer (gold_summary_by_neighborhood) (Rows: 425, Columns: 8, Duplicates: 0, Errors: 0)
+INFO - [PyDeequ] Starting data quality validation - Gold Layer (gold_year_over_year_trends)
+INFO - [PASS] PyDeequ Data Quality Validation PASSED - Gold Layer (gold_year_over_year_trends) (Rows: 5, Columns: 8, Duplicates: 0, Errors: 0)
+INFO -
 [ANALYSIS] Running Data Analysis
 INFO - --------------------------------------------------------------------------------
 INFO - Initialized analyzer with 1,637,779 rows (engine: pyspark)
@@ -378,27 +345,56 @@ INFO - Analyzing physical distribution of properties
 INFO - [OK] Distribution analysis complete
 INFO - Analyzing tax value trends
 INFO - [OK] Tax value trends analysis complete
+INFO - Analyzing construction age distribution
+INFO - [OK] Construction age analysis complete
+INFO - Analyzing age-value relationship
+INFO - [OK] Age-value relationship analysis complete
+INFO - Analyzing neighborhood evolution
+INFO - [OK] Neighborhood evolution analysis complete
 INFO - [OK] All analyses complete
 INFO - Saving analyses to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\total_properties.csv (1 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year.csv (5 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_type.csv (3 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_neighborhood.csv (96 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_type.csv (15 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_neighborhood.csv (425 rows)
-WARNING -   Skipping volume_by_year_neighborhood: unsupported DataFrame type
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_type.csv (3 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_neighborhood_top20.csv (20 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_year.csv (5 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_construction.csv (16 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\top_neighborhoods_by_year.csv (50 rows)
-WARNING -   Skipping top_neighborhoods_by_year: unsupported DataFrame type
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\tax_stats_by_year.csv (5 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\avg_tax_by_neighborhood_top20.csv (20 rows)
-INFO -   Saved: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\property_value_by_year.csv (5 rows)
-WARNING -   Skipping property_value_by_year: unsupported DataFrame type
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\total_properties.csv (1 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\total_properties.parquet (1 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_type.csv (3 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_type.parquet (3 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_neighborhood.csv (96 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_neighborhood.parquet (96 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_type.csv (15 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_type.parquet (15 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_neighborhood.csv (425 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\volume_analysis\volume_by_year_neighborhood.parquet (425 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_type.csv (3 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_type.parquet (3 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_neighborhood_top20.csv (20 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_neighborhood_top20.parquet (20 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_construction.csv (16 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\distribution_by_construction.parquet (16 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\top_neighborhoods_by_year.csv (50 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\distribution_analysis\top_neighborhoods_by_year.parquet (50 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\tax_stats_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\tax_stats_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\avg_tax_by_neighborhood_top20.csv (20 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\avg_tax_by_neighborhood_top20.parquet (20 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\property_value_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\tax_value_analysis\property_value_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\age_analysis\age_distribution_by_range.csv (7 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\age_analysis\age_distribution_by_range.parquet (7 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\age_analysis\age_statistics.csv (1 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\age_analysis\age_statistics.parquet (1 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\age_value_analysis\age_value_relationship.csv (6 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\age_value_analysis\age_value_relationship.parquet (6 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\evolution_analysis\neighborhood_evolution.csv (93 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\evolution_analysis\neighborhood_evolution.parquet (93 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\evolution_analysis\top_growth_quantity.csv (20 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\evolution_analysis\top_growth_quantity.parquet (20 rows)
+INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\evolution_analysis\top_growth_value.csv (20 rows)
+INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses\evolution_analysis\top_growth_value.parquet (20 rows)
 INFO - [OK] All analyses saved
-INFO - [OK] Analysis complete - saved to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses 
+INFO - [OK] Analysis complete - saved to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\analyses
 INFO -
 [VALIDATION] Generating Validation Reports
 INFO - --------------------------------------------------------------------------------
@@ -416,29 +412,66 @@ INFO - Consolidated dataset: 1,637,779 rows, 38 columns
 INFO - 
 Generating visualizations from analysis results...
 INFO - Generating all visualizations...
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.png
-INFO - [OK] Generated 8 plots
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
+WARNING - Silver layer missing required columns ['valor IPTU', 'ano do exercício'], falling back to bronze layer
+INFO - Attempting to load data from bronze layer as fallback...
+INFO - Loaded and concatenated bronze data: 1,637,779 rows, 37 columns from 5 years
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.png
+INFO - [OK] Generated 12 plots
 INFO - Generating all visualizations...
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
-INFO - Saved plot: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
-n.png
-INFO - [OK] Generated 8 plots
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
+WARNING - Silver layer missing required columns ['valor IPTU', 'ano do exercício'], falling back to bronze layer
+INFO - Attempting to load data from bronze layer as fallback...
+INFO - Loaded and concatenated bronze data: 1,637,779 rows, 37 columns from 5 years
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.png
+INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.html
+INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.png
+INFO - [OK] Generated 12 plots
 INFO - [OK] HTML report created: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\visualizations_report.html
-INFO - [OK] Generated 8 plots
+INFO - [OK] Generated 13 plots
 INFO - [OK] HTML report: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\visualizations_report.html
-(neuro-tech) PS C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech> ÊXITO: o processo com PID 355548 (processo filho de PID 356068) foi finalizado.      
-ÊXITO: o processo com PID 356068 (processo filho de PID 356072) foi finalizado.
-ÊXITO: o processo com PID 356072 (processo filho de PID 353416) foi finalizado.
-
+ÊXITO: o processo com PID 61120 (processo filho de PID 70204) foi finalizado.
+ÊXITO: o processo com PID 70204 (processo filho de PID 64816) foi finalizado.
+ÊXITO: o processo com PID 64816 (processo filho de PID 64140) foi finalizado.
