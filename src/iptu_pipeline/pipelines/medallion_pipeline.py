@@ -409,7 +409,8 @@ class MedallionPipeline:
         
         # Generate validation report
         if self.quality_checker:
-            validation_report_path = settings.OUTPUT_DIR / "medallion_validation_report.json"
+            from iptu_pipeline.config import CATALOG_DIR
+            validation_report_path = CATALOG_DIR / "medallion_validation_report.json"
             self.quality_checker.save_validation_report(validation_report_path)
             
             summary = self.quality_checker.get_summary()

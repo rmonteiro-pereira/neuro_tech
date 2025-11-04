@@ -28,7 +28,6 @@ services:
       - "7077:7077"
     volumes:
       - ./data:/opt/data
-      - ./outputs:/opt/outputs
       - ./logs:/opt/logs
     networks:
       - iptu-network
@@ -45,7 +44,6 @@ services:
       - SPARK_WORKER_CORES=2
     volumes:
       - ./data:/opt/data
-      - ./outputs:/opt/outputs
       - ./logs:/opt/logs
     networks:
       - iptu-network
@@ -105,7 +103,6 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./data:/opt/airflow/data
-      - ./outputs:/opt/airflow/outputs
       - ./src:/opt/airflow/src
     # Dependencies and Java are pre-installed in the image
     entrypoint: /bin/bash
@@ -154,7 +151,6 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./data:/opt/airflow/data
-      - ./outputs:/opt/airflow/outputs
       - ./src:/opt/airflow/src
     # Dependencies and Java are pre-installed in the image
     entrypoint: /bin/bash

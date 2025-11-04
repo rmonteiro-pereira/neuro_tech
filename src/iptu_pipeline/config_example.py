@@ -8,7 +8,6 @@ Examples:
     export IPTU_DATA_DIR=/path/to/custom/data
     
     # Set custom output directory
-    export IPTU_OUTPUT_DIR=/path/to/custom/outputs
     
     # Override quality thresholds
     export IPTU_MIN_ROWS_PER_YEAR=500
@@ -23,7 +22,6 @@ Examples:
 
 Or create a .env file:
     IPTU_DATA_DIR=/custom/data/path
-    IPTU_OUTPUT_DIR=/custom/output/path
     IPTU_MIN_ROWS_PER_YEAR=500
     IPTU_DATA_ENGINE=pyspark
 """
@@ -32,7 +30,6 @@ from iptu_pipeline.config import settings
 
 # Example: Access settings
 print(f"Data directory: {settings.DATA_DIR}")
-print(f"Output directory: {settings.OUTPUT_DIR}")
 print(f"Min rows per year: {settings.MIN_ROWS_PER_YEAR}")
 print(f"Data engine: {settings.DATA_ENGINE}")
 
