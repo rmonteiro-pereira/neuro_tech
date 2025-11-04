@@ -11,56 +11,56 @@
 
 ## Table of Contents
 
-- [🎯 Overview](#%F0%9F%8E%AF-overview)
-  - [📊 Principais Descobertas](#%F0%9F%93%8A-principais-descobertas)
-- [✨ Key Features](#%E2%9C%A8-key-features)
-  - [🏆 Core Capabilities](#%F0%9F%8F%86-core-capabilities)
-  - [🔬 Data Quality Framework](#%F0%9F%94%AC-data-quality-framework)
-- [🏗️ Architecture](#%F0%9F%8F%97%EF%B8%8F-architecture)
+- [Overview](#overview)
+  - [Principais Descobertas](#principais-descobertas)
+- [Key Features](#key-features)
+  - [Core Capabilities](#core-capabilities)
+  - [Data Quality Framework](#data-quality-framework)
+- [Architecture](#architecture)
   - [Medallion Architecture (Delta Lake)](#medallion-architecture-delta-lake)
   - [Processing Pipeline](#processing-pipeline)
-- [📁 Project Structure](#%F0%9F%93%81-project-structure)
-- [🚀 Installation](#%F0%9F%9A%80-installation)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
   - [Prerequisites](#prerequisites)
   - [Step 1: Clone Repository](#step-1-clone-repository)
   - [Step 2: Install Dependencies](#step-2-install-dependencies)
   - [Step 3: Verify Installation](#step-3-verify-installation)
-- [🎮 Quick Start](#%F0%9F%8E%AE-quick-start)
+- [Quick Start](#quick-start)
   - [Run Full Pipeline (Pandas)](#run-full-pipeline-pandas)
   - [Run Full Pipeline (PySpark)](#run-full-pipeline-pyspark)
   - [Run with Docker (Spark Standalone)](#run-with-docker-spark-standalone)
-- [📖 Usage Guide](#%F0%9F%93%96-usage-guide)
+- [Usage Guide](#usage-guide)
   - [Basic Usage](#basic-usage)
   - [Advanced Usage](#advanced-usage)
-- [⚙️ Configuration](#%E2%9A%99%EF%B8%8F-configuration)
+- [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
   - [Configuration File](#configuration-file)
   - [Spark Configuration](#spark-configuration)
-- [🔍 Data Quality](#%F0%9F%94%8D-data-quality)
+- [Data Quality](#data-quality)
   - [Validation Framework](#validation-framework)
   - [Quality Reports](#quality-reports)
   - [Running Quality Checks](#running-quality-checks)
-- [📊 Analytics & Visualizations](#%F0%9F%93%8A-analytics--visualizations)
-  - [📈 Análises e Respostas às Perguntas Principais](#%F0%9F%93%88-análises-e-respostas-às-perguntas-principais)
-  - [📊 Todas as Visualizações Disponíveis](#%F0%9F%93%8A-todas-as-visualizações-disponíveis)
-  - [📂 Estrutura Completa das Análises](#%F0%9F%93%82-estrutura-completa-das-análises)
-- [📤 Outputs](#%F0%9F%93%A4-outputs)
+- [Analytics & Visualizations](#analytics--visualizations)
+  - [Análises e Respostas às Perguntas Principais](#análises-e-respostas-às-perguntas-principais)
+  - [Todas as Visualizações Disponíveis](#todas-as-visualizações-disponíveis)
+  - [Estrutura Completa das Análises](#estrutura-completa-das-análises)
+- [Outputs](#outputs)
   - [Medallion Layers](#medallion-layers)
   - [Analysis Results](#analysis-results)
   - [Visualizations](#visualizations)
   - [Legacy Outputs](#legacy-outputs)
   - [Catalog](#catalog)
-- [🔬 Advanced Features](#%F0%9F%94%AC-advanced-features)
+- [Advanced Features](#advanced-features)
   - [Delta Lake Features](#delta-lake-features)
   - [PyDeequ Integration](#pydeequ-integration)
   - [Catalog System](#catalog-system)
   - [Incremental Processing](#incremental-processing)
   - [Export Script](#export-script)
-- [🎯 Next Steps](#%F0%9F%8E%AF-next-steps)
+- [Next Steps](#next-steps)
 
 ---
 
-## 🎯 Overview
+## Overview
 
 This project implements an enterprise-grade data pipeline for processing IPTU (Imposto Predial e Territorial Urbano) tax data from Recife, Brazil, covering years 2020-2024. Built on Python 3.11+, it features:
 
@@ -72,7 +72,7 @@ This project implements an enterprise-grade data pipeline for processing IPTU (I
 - **Interactive Dashboards**: Plotly-powered visualizations
 - **Orchestration**: Apache Airflow DAGs for automated workflows
 
-### 📊 Principais Descobertas
+### Principais Descobertas
 
 O pipeline processou e analisou **1.637.779 imóveis** do IPTU de Recife:
 
@@ -85,9 +85,9 @@ Todas as análises estão disponíveis em `data/gold/analyses/` e visualizaçõe
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🏆 Core Capabilities
+### Core Capabilities
 
 | Feature | Description | Status |
 |---------|-------------|--------|
@@ -104,7 +104,7 @@ Todas as análises estão disponíveis em `data/gold/analyses/` e visualizaçõe
 | **Catalog System** | Centralized metadata tracking | ✅ |
 | **Docker Support** | Containerized Spark environment | ✅ |
 
-### 🔬 Data Quality Framework
+### Data Quality Framework
 
 - **PyDeequ Integration**: AWS Deequ automated data quality checks
 - **Multi-Layer Validation**: Structure, completeness, uniqueness, business rules
@@ -115,7 +115,7 @@ Todas as análises estão disponíveis em `data/gold/analyses/` e visualizaçõe
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Medallion Architecture (Delta Lake)
 
@@ -181,7 +181,7 @@ The pipeline follows a **medallion architecture** with four data layers:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 neuro_tech/
@@ -272,7 +272,7 @@ neuro_tech/
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -339,7 +339,7 @@ Expected output: `Engine: pandas`
 
 ---
 
-## 🎮 Quick Start
+## Quick Start
 
 ### Run Full Pipeline (Pandas)
 
@@ -406,7 +406,7 @@ Access Spark UI: http://localhost:4040
 
 ---
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### Basic Usage
 
@@ -520,7 +520,7 @@ pipeline.run_full_pipeline()
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -580,7 +580,7 @@ builder = SparkSession.builder \
 
 ---
 
-## 🔍 Data Quality
+## Data Quality
 
 ### Validation Framework
 
@@ -636,7 +636,7 @@ results = quality.validate_silver_layer(df_silver, year=None)
 
 ---
 
-## 📊 Analytics & Visualizations
+## Analytics & Visualizations
 
 Este pipeline gera análises abrangentes e visualizações automáticas sobre o inventário de imóveis do IPTU de Recife. As análises cobrem:
 
@@ -652,7 +652,7 @@ Este pipeline gera análises abrangentes e visualizações automáticas sobre o 
 
 Todas as análises são geradas automaticamente ao executar o pipeline e salvos em `data/gold/analyses/` e `data/gold/plots/`.
 
-### 📈 Análises e Respostas às Perguntas Principais
+### Análises e Respostas às Perguntas Principais
 
 O pipeline realiza análises abrangentes que respondem às perguntas principais sobre o inventário de imóveis do IPTU:
 
@@ -764,7 +764,7 @@ A análise comparativa entre o primeiro e último ano mostra que muitos bairros 
 
 ---
 
-### 📊 Todas as Visualizações Disponíveis
+### Todas as Visualizações Disponíveis
 
 Todas as visualizações são geradas automaticamente em formato HTML interativo e PNG (alta qualidade, 2x scale) e salvas em `data/gold/plots/`:
 
@@ -824,7 +824,7 @@ Todas as visualizações são geradas automaticamente em formato HTML interativo
 
 [![Crescimento em Valor](data/gold/plots/neighborhood_growth_value.png)](data/gold/plots/neighborhood_growth_value.html)
 
-#### 📄 Relatório Completo
+#### Relatório Completo
 
 **Relatório HTML Interativo** - Todas as visualizações e análises em um único documento
 - Visualização: [`visualizations_report.html`](data/gold/plots/visualizations_report.html)
@@ -833,7 +833,7 @@ Todas as visualizações são geradas automaticamente em formato HTML interativo
 
 ---
 
-### 📂 Estrutura Completa das Análises
+### Estrutura Completa das Análises
 
 Todas as análises são salvas em `data/gold/analyses/` organizadas por categoria:
 
@@ -874,7 +874,7 @@ analyses/
 
 ---
 
-## 📤 Outputs
+## Outputs
 
 ### Medallion Layers
 
@@ -966,7 +966,7 @@ analyses/
 
 ---
 
-## 🔬 Advanced Features
+## Advanced Features
 
 ### Delta Lake Features
 
@@ -1011,7 +1011,7 @@ Add new years without reprocessing:
 
 ---
 
-## 🎯 Next Steps
+## Next Steps
 
 Future enhancements:
 - [ ] Unit test coverage
