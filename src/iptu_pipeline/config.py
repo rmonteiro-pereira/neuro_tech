@@ -40,10 +40,6 @@ class Settings(BaseSettings):
         default_factory=lambda: Path(__file__).parent.parent.parent / "data",
         description="Directory containing input data files"
     )
-    OUTPUT_DIR: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent.parent / "outputs",
-        description="Directory for output files"
-    )
     LOG_DIR: Path = Field(
         default_factory=lambda: Path(__file__).parent.parent.parent / "logs",
         description="Directory for log files"
@@ -81,17 +77,6 @@ class Settings(BaseSettings):
         description="Years with JSON format data"
     )
     
-    # File paths (computed from OUTPUT_DIR)
-    @property
-    def consolidated_data_path(self) -> Path:
-        """Path to consolidated data file."""
-        return self.OUTPUT_DIR / "iptu_consolidated.parquet"
-    
-    @property
-    def processed_data_path(self) -> Path:
-        """Path to processed data file."""
-        return self.OUTPUT_DIR / "iptu_processed.parquet"
-    
     @property
     def analysis_output_path(self) -> Path:
         """Path to analysis output directory (in gold layer)."""
@@ -122,7 +107,7 @@ class Settings(BaseSettings):
         description="Data processing engine: 'pandas' or 'pyspark'"
     )
     
-    @field_validator('BASE_DIR', 'DATA_DIR', 'OUTPUT_DIR', 'LOG_DIR', 'RAW_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', 'CATALOG_DIR', mode='before')
+    @field_validator('BASE_DIR', 'DATA_DIR', 'LOG_DIR', 'RAW_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', 'CATALOG_DIR', mode='before')
     @classmethod
     def ensure_paths(cls, v) -> Path:
         """Ensure path is a Path object."""
@@ -130,7 +115,7 @@ class Settings(BaseSettings):
             return Path(v)
         return v
     
-    @field_validator('DATA_DIR', 'OUTPUT_DIR', 'LOG_DIR', 'RAW_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', 'CATALOG_DIR', mode='after')
+    @field_validator('DATA_DIR', 'LOG_DIR', 'RAW_DIR', 'BRONZE_DIR', 'SILVER_DIR', 'GOLD_DIR', 'CATALOG_DIR', mode='after')
     @classmethod
     def create_directories(cls, v: Path) -> Path:
         """Create directories if they don't exist."""
@@ -218,7 +203,6 @@ QUALITY_THRESHOLDS = {
 # Backward compatibility: export paths as constants
 BASE_DIR = settings.BASE_DIR
 DATA_DIR = settings.DATA_DIR
-OUTPUT_DIR = settings.OUTPUT_DIR
 LOG_DIR = settings.LOG_DIR
 RAW_DIR = settings.RAW_DIR
 BRONZE_DIR = settings.BRONZE_DIR
@@ -228,7 +212,5 @@ CATALOG_DIR = settings.CATALOG_DIR
 CSV_YEARS = settings.CSV_YEARS
 JSON_YEARS = settings.JSON_YEARS
 DATA_PATHS = settings.data_paths
-CONSOLIDATED_DATA_PATH = settings.consolidated_data_path
-PROCESSED_DATA_PATH = settings.processed_data_path
 ANALYSIS_OUTPUT_PATH = settings.analysis_output_path
 PLOTS_OUTPUT_PATH = settings.plots_output_path

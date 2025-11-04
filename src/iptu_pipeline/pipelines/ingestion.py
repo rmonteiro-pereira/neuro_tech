@@ -13,7 +13,7 @@ except ImportError:
     pd = None
 
 from iptu_pipeline.engine import get_engine
-from iptu_pipeline.config import DATA_PATHS, CSV_YEARS, JSON_YEARS, OUTPUT_DIR, CONSOLIDATED_DATA_PATH
+from iptu_pipeline.config import DATA_PATHS, CSV_YEARS, JSON_YEARS
 from iptu_pipeline.utils.logger import setup_logger
 from iptu_pipeline.utils.data_quality import DataQualityValidator
 
@@ -175,7 +175,8 @@ class DataIngestion:
         Returns:
             Dictionary mapping year to DataFrame for newly loaded years
         """
-        existing_data_path = existing_data_path or CONSOLIDATED_DATA_PATH
+        # Legacy consolidated path no longer used - data is stored in silver layer
+        # existing_data_path = existing_data_path or CONSOLIDATED_DATA_PATH
         
         # Check which years already exist
         existing_years = set()

@@ -124,12 +124,12 @@ def generate_dashboard(**context):
                 df = pd.read_parquet(silver_path / "data.parquet")
             else:
                 # Fallback to legacy path
-                from iptu_pipeline.config import CONSOLIDATED_DATA_PATH
-                df = pd.read_parquet(CONSOLIDATED_DATA_PATH)
+                from iptu_pipeline.config import SILVER_DIR
+                df = pd.read_parquet(SILVER_DIR / "iptu_silver_consolidated" / "data.parquet")
     except Exception as e:
         logger.warning(f"Could not load from silver layer: {e}, using legacy path")
-        from iptu_pipeline.config import CONSOLIDATED_DATA_PATH
-        df = pd.read_parquet(CONSOLIDATED_DATA_PATH)
+        from iptu_pipeline.config import SILVER_DIR
+        df = pd.read_parquet(SILVER_DIR / "iptu_silver_consolidated" / "data.parquet")
     
     dashboard = IPTUDashboard(df=df)
     dashboard_path = dashboard.generate_dashboard()
@@ -147,8 +147,8 @@ def generate_validation_reports(**context):
     from iptu_pipeline.config import settings
     
     # Check for medallion validation report
-    medallion_report_path = settings.OUTPUT_DIR / "medallion_validation_report.json"
-    legacy_report_path = settings.OUTPUT_DIR / "validation_report.csv"
+    from iptu_pipeline.config import CATALOG_DIR
+    medallion_report_path = CATALOG_DIR / "medallion_validation_report.json"
     
     reports = []
     
