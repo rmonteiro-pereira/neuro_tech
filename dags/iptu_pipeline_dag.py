@@ -115,31 +115,24 @@ def generate_dashboard(**context):
     logger.info("Generating dashboard from gold layer")
     
     from iptu_pipeline.dashboard import IPTUDashboard
-    from iptu_pipeline.config import SILVER_DIR
+    from iptu_pipeline.config import settings
     from iptu_pipeline.engine import get_engine
     import pandas as pd
     
     engine = get_engine()
     
-    # Load from silver layer (consolidated data)
+    # Load from gold layer (consolidated data)
+    gold_path = settings.gold_parquet_dir / "iptu_consolidated.parquet"
     try:
         if engine.engine_type == "pyspark":
-            df = engine.read_parquet(SILVER_DIR / "iptu_silver_consolidated")
+            df = engine.read_parquet(gold_path)
             # Convert to Pandas for dashboard (dashboard currently only supports Pandas)
             df = df.toPandas()
         else:
-            # Try to load from silver layer
-            silver_path = SILVER_DIR / "iptu_silver_consolidated"
-            if (silver_path / "data.parquet").exists():
-                df = pd.read_parquet(silver_path / "data.parquet")
-            else:
-                # Fallback to legacy path
-                from iptu_pipeline.config import CONSOLIDATED_DATA_PATH
-                df = pd.read_parquet(CONSOLIDATED_DATA_PATH)
+            df = pd.read_parquet(gold_path)
     except Exception as e:
-        logger.warning(f"Could not load from silver layer: {e}, using legacy path")
-        from iptu_pipeline.config import CONSOLIDATED_DATA_PATH
-        df = pd.read_parquet(CONSOLIDATED_DATA_PATH)
+        logger.error(f"Could not load from gold layer: {e}")
+        raise
     
     dashboard = IPTUDashboard(df=df)
     dashboard_path = dashboard.generate_dashboard()

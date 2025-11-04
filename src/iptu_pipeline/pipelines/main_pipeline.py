@@ -94,7 +94,7 @@ class IPTUPipeline:
         logger.info(f"Bronze layer (cleaned): {BRONZE_DIR}")
         logger.info(f"Silver layer (consolidated): {SILVER_DIR}")
         logger.info(f"Gold layer (refined/analysis/plots): {GOLD_DIR}")
-        logger.info(f"Data catalog (metadata): {settings.CATALOG_DIR}")
+        logger.info(f"Data catalog (metadata): {CATALOG_DIR}")
         
         # ===== RAW LAYER: Catalog Source Files =====
         logger.info("\n" + "="*80)
@@ -351,6 +351,11 @@ class IPTUPipeline:
         if self.medallion_quality:
             self.medallion_quality.validate_silver_layer(consolidated_df, None)
         
+        # Save consolidated silver data to gold layer (Delta and Parquet)
+        logger.info("\nSaving consolidated data to gold layer...")
+        self._save_to_gold(consolidated_df, GOLD_DIR, "iptu_consolidated")
+        logger.info("[OK] Consolidated data saved to gold layer (Delta and Parquet)")
+        
         # ===== GOLD LAYER: Create Refined Outputs =====
         logger.info("\n" + "="*80)
         logger.info("[GOLD LAYER] Creating Refined Business-Ready Outputs")
@@ -380,8 +385,7 @@ class IPTUPipeline:
         
         # Medallion validation report (PyDeequ) - saved to catalog directory
         if self.medallion_quality:
-            from iptu_pipeline.config import CATALOG_DIR
-            medallion_report_path = CATALOG_DIR / "medallion_validation_report.json"
+            medallion_report_path = settings.CATALOG_DIR / "medallion_validation_report.json"
             self.medallion_quality.save_validation_report(medallion_report_path)
             summary = self.medallion_quality.get_summary()
             logger.info(f"[OK] Medallion validation summary: {summary['passed']}/{summary['total_validations']} passed")
@@ -428,10 +432,9 @@ class IPTUPipeline:
                 gold_summary = gold_summary.withColumn("_gold_timestamp", lit(datetime.now()))
                 gold_summary = gold_summary.withColumn("_output_type", lit("summary_by_year_type"))
                 
-                gold_path_summary = GOLD_DIR / "gold_summary_by_year_type"
-                self._save_to_gold(gold_summary, gold_path_summary)
+                self._save_to_gold(gold_summary, GOLD_DIR, "gold_summary_by_year_type")
                 gold_outputs["summary_by_year_type"] = gold_summary
-                logger.info(f"[OK] Saved to: {gold_path_summary}")
+                logger.info(f"[OK] Saved gold_summary_by_year_type to Delta and Parquet")
             
             # Gold 2: Summary by Neighborhood
             logger.info("Creating gold output: Summary by Neighborhood")
@@ -448,10 +451,9 @@ class IPTUPipeline:
                 gold_neighborhood = gold_neighborhood.withColumn("_gold_timestamp", lit(datetime.now()))
                 gold_neighborhood = gold_neighborhood.withColumn("_output_type", lit("summary_by_neighborhood"))
                 
-                gold_path_neighborhood = GOLD_DIR / "gold_summary_by_neighborhood"
-                self._save_to_gold(gold_neighborhood, gold_path_neighborhood)
+                self._save_to_gold(gold_neighborhood, GOLD_DIR, "gold_summary_by_neighborhood")
                 gold_outputs["summary_by_neighborhood"] = gold_neighborhood
-                logger.info(f"[OK] Saved to: {gold_path_neighborhood}")
+                logger.info(f"[OK] Saved gold_summary_by_neighborhood to Delta and Parquet")
             
             # Gold 3: Year-over-Year Trends
             logger.info("Creating gold output: Year-over-Year Trends")
@@ -469,10 +471,9 @@ class IPTUPipeline:
                 gold_trends = gold_trends.withColumn("_gold_timestamp", lit(datetime.now()))
                 gold_trends = gold_trends.withColumn("_output_type", lit("year_over_year_trends"))
                 
-                gold_path_trends = GOLD_DIR / "gold_year_over_year_trends"
-                self._save_to_gold(gold_trends, gold_path_trends)
+                self._save_to_gold(gold_trends, GOLD_DIR, "gold_year_over_year_trends")
                 gold_outputs["year_over_year_trends"] = gold_trends
-                logger.info(f"[OK] Saved to: {gold_path_trends}")
+                logger.info(f"[OK] Saved gold_year_over_year_trends to Delta and Parquet")
             
         else:
             # Pandas implementation
@@ -494,10 +495,9 @@ class IPTUPipeline:
                 gold_summary["_gold_timestamp"] = pd.Timestamp.now()
                 gold_summary["_output_type"] = "summary_by_year_type"
                 
-                gold_path_summary = GOLD_DIR / "gold_summary_by_year_type.parquet"
-                self._save_to_gold(gold_summary, gold_path_summary)
+                self._save_to_gold(gold_summary, GOLD_DIR, "gold_summary_by_year_type")
                 gold_outputs["summary_by_year_type"] = gold_summary
-                logger.info(f"[OK] Saved to: {gold_path_summary}")
+                logger.info(f"[OK] Saved gold_summary_by_year_type to Parquet")
             
             logger.warning("Pandas gold layer aggregation partially implemented. Consider using PySpark for full features.")
         
@@ -580,19 +580,39 @@ class IPTUPipeline:
                 path.mkdir(parents=True, exist_ok=True)
                 self.engine.write_parquet(df, path / "data.parquet")
     
-    def _save_to_gold(self, df, path: Path):
-        """Save DataFrame to gold layer."""
+    def _save_to_gold(self, df, path: Path, output_name: str):
+        """
+        Save DataFrame to gold layer in both Delta and Parquet formats.
+        
+        Args:
+            df: DataFrame to save
+            path: Base path (will be used to determine output name)
+            output_name: Name for the output file/directory (without extension)
+        """
         if self.engine.engine_type == "pyspark":
-            # Gold layer uses Parquet for better compatibility
-            df.write.format("parquet").mode("overwrite").save(str(path))
+            # Save Delta table to delta directory
+            delta_path = settings.gold_delta_dir / output_name
+            try:
+                df.write.format("delta").mode("overwrite").save(str(delta_path))
+                logger.debug(f"Saved Delta table: {delta_path}")
+            except Exception as e:
+                logger.warning(f"Delta write failed: {e}, using Parquet only")
+            
+            # Always save Parquet version
+            parquet_path = settings.gold_parquet_dir / f"{output_name}.parquet"
+            # Convert to Pandas for Parquet export
+            try:
+                pandas_df = df.toPandas()
+                pandas_df.to_parquet(parquet_path, index=False, engine='pyarrow')
+                logger.info(f"Saved Parquet: {parquet_path}")
+            except Exception as e:
+                logger.warning(f"Parquet export failed: {e}")
         else:
-            # Pandas: save as Parquet
-            path.parent.mkdir(parents=True, exist_ok=True)
-            if path.suffix == ".parquet":
-                self.engine.write_parquet(df, path)
-            else:
-                path.mkdir(parents=True, exist_ok=True)
-                self.engine.write_parquet(df, path / "data.parquet")
+            # Pandas: save as Parquet only
+            parquet_path = settings.gold_parquet_dir / f"{output_name}.parquet"
+            parquet_path.parent.mkdir(parents=True, exist_ok=True)
+            self.engine.write_parquet(df, parquet_path)
+            logger.info(f"Saved Parquet: {parquet_path}")
     
     def _load_from_bronze(self, path: Path):
         """Load DataFrame from bronze layer."""
