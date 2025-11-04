@@ -1,6 +1,10 @@
-data/
-# Exception: Include plot images and HTML visualizations
-!data/gold/
+# Ignore data directories except plots
+data/raw/
+data/bronze/
+data/silver/
+data/catalog/
+data/gold/
+# Exception: Include plot images and HTML visualizations in gold layer
 !data/gold/plots/
 !data/gold/plots/*.png
 !data/gold/plots/*.html
