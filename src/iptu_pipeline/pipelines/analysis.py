@@ -902,23 +902,34 @@ class IPTUAnalyzer:
     
     def save_analyses(self, output_dir: Optional[Path] = None) -> None:
         """
-        Save all analysis results to CSV files.
+        Save all analysis results to CSV and Parquet files.
         
         Args:
-            output_dir: Directory to save analysis files. Uses default if None.
+            output_dir: Directory to save CSV files. Uses default if None (gold_csv_dir).
         """
-        output_dir = output_dir or ANALYSIS_OUTPUT_PATH
-        output_dir.mkdir(exist_ok=True)
+        from iptu_pipeline.config import settings
         
-        logger.info(f"Saving analyses to {output_dir}")
+        # CSV files go to gold_csv_dir
+        csv_output_dir = output_dir or settings.gold_csv_dir
+        csv_output_dir.mkdir(exist_ok=True)
+        
+        # Parquet files go to gold_parquet_dir/analyses
+        parquet_output_dir = settings.gold_parquet_dir / "analyses"
+        parquet_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"Saving analyses CSV to {csv_output_dir}")
+        logger.info(f"Saving analyses Parquet to {parquet_output_dir}")
         
         for analysis_name, analysis_results in self.analyses_results.items():
-            analysis_dir = output_dir / analysis_name
-            analysis_dir.mkdir(exist_ok=True)
+            csv_analysis_dir = csv_output_dir / analysis_name
+            csv_analysis_dir.mkdir(exist_ok=True)
+            
+            parquet_analysis_dir = parquet_output_dir / analysis_name
+            parquet_analysis_dir.mkdir(exist_ok=True)
             
             for result_name, result_df in analysis_results.items():
-                csv_path = analysis_dir / f"{result_name}.csv"
-                parquet_path = analysis_dir / f"{result_name}.parquet"
+                csv_path = csv_analysis_dir / f"{result_name}.csv"
+                parquet_path = parquet_analysis_dir / f"{result_name}.parquet"
                 
                 if self.is_spark and hasattr(result_df, 'toPandas'):
                     # Convert PySpark DataFrame to Pandas for export

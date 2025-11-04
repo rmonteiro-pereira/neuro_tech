@@ -78,18 +78,42 @@ class Settings(BaseSettings):
     )
     
     @property
-    def analysis_output_path(self) -> Path:
-        """Path to analysis output directory (in gold layer)."""
-        path = self.GOLD_DIR / "analyses"
+    def gold_delta_dir(self) -> Path:
+        """Path to gold layer Delta tables directory."""
+        path = self.GOLD_DIR / "delta"
         path.mkdir(parents=True, exist_ok=True)
         return path
     
     @property
-    def plots_output_path(self) -> Path:
-        """Path to plots output directory (in gold layer)."""
+    def gold_parquet_dir(self) -> Path:
+        """Path to gold layer Parquet files directory."""
+        path = self.GOLD_DIR / "parquet"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    
+    @property
+    def gold_csv_dir(self) -> Path:
+        """Path to gold layer CSV files directory (analyses)."""
+        path = self.GOLD_DIR / "csv"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    
+    @property
+    def gold_plots_dir(self) -> Path:
+        """Path to gold layer plots directory."""
         path = self.GOLD_DIR / "plots"
         path.mkdir(parents=True, exist_ok=True)
         return path
+    
+    @property
+    def analysis_output_path(self) -> Path:
+        """Path to analysis output directory (in gold layer CSV)."""
+        return self.gold_csv_dir
+    
+    @property
+    def plots_output_path(self) -> Path:
+        """Path to plots output directory (in gold layer)."""
+        return self.gold_plots_dir
     
     # Data quality thresholds
     MIN_ROWS_PER_YEAR: int = Field(
@@ -209,6 +233,10 @@ BRONZE_DIR = settings.BRONZE_DIR
 SILVER_DIR = settings.SILVER_DIR
 GOLD_DIR = settings.GOLD_DIR
 CATALOG_DIR = settings.CATALOG_DIR
+GOLD_DELTA_DIR = settings.gold_delta_dir
+GOLD_PARQUET_DIR = settings.gold_parquet_dir
+GOLD_CSV_DIR = settings.gold_csv_dir
+GOLD_PLOTS_DIR = settings.gold_plots_dir
 CSV_YEARS = settings.CSV_YEARS
 JSON_YEARS = settings.JSON_YEARS
 DATA_PATHS = settings.data_paths
