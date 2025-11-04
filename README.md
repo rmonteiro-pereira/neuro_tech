@@ -48,7 +48,6 @@
   - [Medallion Layers](#medallion-layers)
   - [Analysis Results](#analysis-results)
   - [Visualizations](#visualizations)
-  - [Legacy Outputs](#legacy-outputs)
   - [Catalog](#catalog)
 - [Advanced Features](#advanced-features)
   - [Delta Lake Features](#delta-lake-features)
@@ -244,11 +243,6 @@ neuro_tech/
 │
 ├── dags/                                    # Airflow DAGs
 │   └── iptu_pipeline_dag.py                # Deployable DAG
-│
-├── outputs/                                 # Legacy outputs
-│   ├── validation_report.csv
-│   ├── validation_errors.csv
-│   └── medallion_validation_report.json
 │
 ├── logs/                                    # Application logs
 │
@@ -545,7 +539,6 @@ class Settings(BaseSettings):
     # Base directories
     BASE_DIR: Path = ...
     DATA_DIR: Path = ...
-    OUTPUT_DIR: Path = ...
     
     # Medallion layers
     RAW_DIR: Path = ...
@@ -612,9 +605,7 @@ The pipeline implements **multi-layer data quality validation**:
 Reports are generated at multiple stages:
 
 1. **data/catalog/data_catalog.json**: Raw file catalog
-2. **outputs/validation_report.csv**: Per-year validation summary
-3. **outputs/validation_errors.csv**: Detailed errors/warnings
-4. **outputs/medallion_validation_report.json**: Layer-wise validation
+2. **data/catalog/medallion_validation_report.json**: Layer-wise validation
 
 ### Running Quality Checks
 
@@ -950,12 +941,6 @@ analyses/
 
 > **Nota**: Todas as visualizações são geradas em formato HTML interativo usando Plotly. Abra os arquivos no navegador para explorar os dados com zoom, hover e filtros interativos.
 
-### Legacy Outputs
-
-`outputs/`:
-- `validation_report.csv`: Validation summary
-- `validation_errors.csv`: Detailed errors
-- `medallion_validation_report.json`: Layer validation
 
 ### Catalog
 

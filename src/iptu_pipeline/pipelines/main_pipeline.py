@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 from iptu_pipeline.config import (
-    CONSOLIDATED_DATA_PATH, PROCESSED_DATA_PATH, settings,
+    settings,
     RAW_DIR, BRONZE_DIR, SILVER_DIR, GOLD_DIR, CATALOG_DIR, DATA_DIR
 )
 from iptu_pipeline.utils.logger import setup_logger
@@ -80,7 +80,7 @@ class IPTUPipeline:
         
         Args:
             years: Years to process. If None, processes all available years.
-            save_consolidated: Whether to save consolidated data (legacy path for backward compatibility)
+            save_consolidated: Whether to save consolidated data to silver layer (deprecated, data is always saved to silver layer)
             run_analysis: Whether to run analyses
             incremental: Whether to load only new years (incremental mode)
         
@@ -351,14 +351,6 @@ class IPTUPipeline:
         if self.medallion_quality:
             self.medallion_quality.validate_silver_layer(consolidated_df, None)
         
-        # Legacy: Save to old paths for backward compatibility
-        if save_consolidated:
-            logger.info("\n[Saving legacy paths for backward compatibility]")
-            self.engine.write_parquet(consolidated_df, CONSOLIDATED_DATA_PATH, compression='snappy')
-            logger.info(f"[OK] Saved to legacy path: {CONSOLIDATED_DATA_PATH}")
-            self.engine.write_parquet(consolidated_df, PROCESSED_DATA_PATH, compression='snappy')
-            logger.info(f"[OK] Saved to legacy path: {PROCESSED_DATA_PATH}")
-        
         # ===== GOLD LAYER: Create Refined Outputs =====
         logger.info("\n" + "="*80)
         logger.info("[GOLD LAYER] Creating Refined Business-Ready Outputs")
@@ -386,25 +378,14 @@ class IPTUPipeline:
         logger.info("\n[VALIDATION] Generating Validation Reports")
         logger.info("-" * 80)
         
-        # Legacy validation report
-        validation_report = self.validator.generate_validation_report(
-            output_path=Path("outputs") / "validation_report.csv"
-        )
-        if not validation_report.empty:
-            logger.info(f"[OK] Legacy validation report: {len(validation_report)} records")
-        
-        errors_table = self.validator.get_errors_table()
-        if not errors_table.empty:
-            errors_path = Path("outputs") / "validation_errors.csv"
-            errors_table.to_csv(errors_path, index=False)
-            logger.info(f"[OK] Validation errors table saved: {errors_path}")
-        
-        # Medallion validation report (PyDeequ)
+        # Medallion validation report (PyDeequ) - saved to catalog directory
         if self.medallion_quality:
-            medallion_report_path = settings.OUTPUT_DIR / "medallion_validation_report.json"
+            from iptu_pipeline.config import CATALOG_DIR
+            medallion_report_path = CATALOG_DIR / "medallion_validation_report.json"
             self.medallion_quality.save_validation_report(medallion_report_path)
             summary = self.medallion_quality.get_summary()
             logger.info(f"[OK] Medallion validation summary: {summary['passed']}/{summary['total_validations']} passed")
+            logger.info(f"[OK] Validation report saved to: {medallion_report_path}")
         
         logger.info("\n" + "="*80)
         logger.info("Pipeline Complete!")

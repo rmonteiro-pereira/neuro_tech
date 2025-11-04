@@ -157,8 +157,8 @@ def generate_validation_reports(**context):
     from iptu_pipeline.config import settings
     
     # Check for medallion validation report
-    medallion_report_path = settings.OUTPUT_DIR / "medallion_validation_report.json"
-    legacy_report_path = settings.OUTPUT_DIR / "validation_report.csv"
+    from iptu_pipeline.config import CATALOG_DIR
+    medallion_report_path = CATALOG_DIR / "medallion_validation_report.json"
     
     reports = []
     
@@ -294,15 +294,12 @@ def validate_pipeline_success(**context):
     
     # 5. Check validation reports
     logger.info("\n[5/5] Checking validation reports...")
-    medallion_report = settings.OUTPUT_DIR / "medallion_validation_report.json"
-    legacy_report = settings.OUTPUT_DIR / "validation_report.csv"
+    from iptu_pipeline.config import CATALOG_DIR
+    medallion_report = CATALOG_DIR / "medallion_validation_report.json"
     
-    if medallion_report.exists() or legacy_report.exists():
+    if medallion_report.exists():
         validation_results['validation_reports_created'] = True
-        if medallion_report.exists():
-            logger.info(f"✓ Medallion validation report exists: {medallion_report}")
-        if legacy_report.exists():
-            logger.info(f"✓ Legacy validation report exists: {legacy_report}")
+        logger.info(f"✓ Medallion validation report exists: {medallion_report}")
     else:
         validation_results['errors'].append("Validation reports missing")
         logger.error(f"✗ Validation reports missing")
