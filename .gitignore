@@ -1,4 +1,9 @@
 data/
+# Exception: Include plot images and HTML visualizations
+!data/gold/
+!data/gold/plots/
+!data/gold/plots/*.png
+!data/gold/plots/*.html
 .venv/
 logs/
 outputs/
