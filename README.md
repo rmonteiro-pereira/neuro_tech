@@ -123,15 +123,15 @@ The pipeline follows a **medallion architecture** with four data layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     RAW LAYER (data/raw/)                      │
+│                     RAW LAYER (data/raw/)                       │
 │  • Source CSV/JSON files                                        │
 │  • No processing applied                                        │
 │  • Immutable source of truth                                    │
-│  • Cataloged with metadata (MD5, size, discovery date)         │
+│  • Cataloged with metadata (MD5, size, discovery date)          │
 └─────────────────────────────────────────────────────────────────┘
                                   ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                   BRONZE LAYER (data/bronze/)                  │
+│                   BRONZE LAYER (data/bronze/)                   │
 │  • Cleaned and cataloged data                                   │
 │  • Normalized column names                                      │
 │  • Standardized data types                                      │
@@ -142,7 +142,7 @@ The pipeline follows a **medallion architecture** with four data layers:
 └─────────────────────────────────────────────────────────────────┘
                                   ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                   SILVER LAYER (data/silver/)                  │
+│                   SILVER LAYER (data/silver/)                   │
 │  • Consolidated multi-year dataset                              │
 │  • Unified schema across all years                              │
 │  • Time-series data ready for analytics                         │
