@@ -11,52 +11,52 @@
 
 ## Table of Contents
 
-- [🎯 Overview](#🎯-overview)
-  - [📊 Principais Descobertas](#📊-principais-descobertas)
-- [✨ Key Features](#✨-key-features)
-  - [🏆 Core Capabilities](#🏆-core-capabilities)
-  - [🔬 Data Quality Framework](#🔬-data-quality-framework)
-- [🏗️ Architecture](#🏗️-architecture)
+- [🎯 Overview](#%F0%9F%8E%AF-overview)
+  - [📊 Principais Descobertas](#%F0%9F%93%8A-principais-descobertas)
+- [✨ Key Features](#%E2%9C%A8-key-features)
+  - [🏆 Core Capabilities](#%F0%9F%8F%86-core-capabilities)
+  - [🔬 Data Quality Framework](#%F0%9F%94%AC-data-quality-framework)
+- [🏗️ Architecture](#%F0%9F%8F%97%EF%B8%8F-architecture)
   - [Medallion Architecture (Delta Lake)](#medallion-architecture-delta-lake)
   - [Processing Pipeline](#processing-pipeline)
-- [📁 Project Structure](#📁-project-structure)
-- [🚀 Installation](#🚀-installation)
+- [📁 Project Structure](#%F0%9F%93%81-project-structure)
+- [🚀 Installation](#%F0%9F%9A%80-installation)
   - [Prerequisites](#prerequisites)
   - [Step 1: Clone Repository](#step-1-clone-repository)
   - [Step 2: Install Dependencies](#step-2-install-dependencies)
   - [Step 3: Verify Installation](#step-3-verify-installation)
-- [🎮 Quick Start](#🎮-quick-start)
+- [🎮 Quick Start](#%F0%9F%8E%AE-quick-start)
   - [Run Full Pipeline (Pandas)](#run-full-pipeline-pandas)
   - [Run Full Pipeline (PySpark)](#run-full-pipeline-pyspark)
   - [Run with Docker (Spark Standalone)](#run-with-docker-spark-standalone)
-- [📖 Usage Guide](#📖-usage-guide)
+- [📖 Usage Guide](#%F0%9F%93%96-usage-guide)
   - [Basic Usage](#basic-usage)
   - [Advanced Usage](#advanced-usage)
-- [⚙️ Configuration](#⚙️-configuration)
+- [⚙️ Configuration](#%E2%9A%99%EF%B8%8F-configuration)
   - [Environment Variables](#environment-variables)
   - [Configuration File](#configuration-file)
   - [Spark Configuration](#spark-configuration)
-- [🔍 Data Quality](#🔍-data-quality)
+- [🔍 Data Quality](#%F0%9F%94%8D-data-quality)
   - [Validation Framework](#validation-framework)
   - [Quality Reports](#quality-reports)
   - [Running Quality Checks](#running-quality-checks)
-- [📊 Analytics & Visualizations](#📊-analytics--visualizations)
-  - [📈 Análises e Respostas às Perguntas Principais](#📈-análises-e-respostas-às-perguntas-principais)
-  - [📊 Todas as Visualizações Disponíveis](#📊-todas-as-visualizações-disponíveis)
-  - [📂 Estrutura Completa das Análises](#📂-estrutura-completa-das-análises)
-- [📤 Outputs](#📤-outputs)
+- [📊 Analytics & Visualizations](#%F0%9F%93%8A-analytics--visualizations)
+  - [📈 Análises e Respostas às Perguntas Principais](#%F0%9F%93%88-análises-e-respostas-às-perguntas-principais)
+  - [📊 Todas as Visualizações Disponíveis](#%F0%9F%93%8A-todas-as-visualizações-disponíveis)
+  - [📂 Estrutura Completa das Análises](#%F0%9F%93%82-estrutura-completa-das-análises)
+- [📤 Outputs](#%F0%9F%93%A4-outputs)
   - [Medallion Layers](#medallion-layers)
   - [Analysis Results](#analysis-results)
   - [Visualizations](#visualizations)
   - [Legacy Outputs](#legacy-outputs)
   - [Catalog](#catalog)
-- [🔬 Advanced Features](#🔬-advanced-features)
+- [🔬 Advanced Features](#%F0%9F%94%AC-advanced-features)
   - [Delta Lake Features](#delta-lake-features)
   - [PyDeequ Integration](#pydeequ-integration)
   - [Catalog System](#catalog-system)
   - [Incremental Processing](#incremental-processing)
   - [Export Script](#export-script)
-- [🎯 Next Steps](#🎯-next-steps)
+- [🎯 Next Steps](#%F0%9F%8E%AF-next-steps)
 
 ---
 
@@ -390,7 +390,7 @@ INFO - [OK] Generated 12 plots
 INFO - [OK] HTML report created: data/gold/plots/visualizations_report.html
 ```
 
-> 📝 **Full Output**: See [`example_run.txt`](example_run.txt) for the complete execution log with detailed processing steps.
+> **Full Output**: See [`example_run.txt`](example_run.txt) for the complete execution log with detailed processing steps.
 
 ### Run with Docker (Spark Standalone)
 
@@ -646,9 +646,9 @@ Este pipeline gera análises abrangentes e visualizações automáticas sobre o 
 - **Evolução**: Crescimento de bairros em quantidade e valor ao longo do tempo
 
 **Resultados:**
-- 📊 **12 visualizações interativas** em formato HTML (Plotly) + PNG (alta qualidade)
-- 📈 **20+ análises** detalhadas (CSV)
-- 📄 **1 relatório HTML** interativo com todas as visualizações e tabelas
+- **12 visualizações interativas** em formato HTML (Plotly) + PNG (alta qualidade)
+- **20+ análises** detalhadas (CSV)
+- **1 relatório HTML** interativo com todas as visualizações e tabelas
 
 Todas as análises são geradas automaticamente ao executar o pipeline e salvos em `data/gold/analyses/` e `data/gold/plots/`.
 
@@ -829,7 +829,7 @@ Todas as visualizações são geradas automaticamente em formato HTML interativo
 **Relatório HTML Interativo** - Todas as visualizações e análises em um único documento
 - Visualização: [`visualizations_report.html`](data/gold/plots/visualizations_report.html)
 
-> 💡 **Dica**: Clique em qualquer imagem acima para abrir a versão HTML interativa no navegador. Use zoom, hover e filtros para explorar os dados!
+> **Dica**: Clique em qualquer imagem acima para abrir a versão HTML interativa no navegador. Use zoom, hover e filtros para explorar os dados!
 
 ---
 
@@ -948,7 +948,7 @@ analyses/
 #### Relatório HTML
 13. [`visualizations_report.html`](data/gold/plots/visualizations_report.html) - Relatório HTML interativo com todas as visualizações e tabelas detalhadas
 
-> 💡 **Nota**: Todas as visualizações são geradas em formato HTML interativo usando Plotly. Abra os arquivos no navegador para explorar os dados com zoom, hover e filtros interativos.
+> **Nota**: Todas as visualizações são geradas em formato HTML interativo usando Plotly. Abra os arquivos no navegador para explorar os dados com zoom, hover e filtros interativos.
 
 ### Legacy Outputs
 
@@ -1024,4 +1024,4 @@ Future enhancements:
 
 ---
 
-**Built with ❤️ for the Neuro Tech Challenge**
+**Built with love for the Neuro Tech Challenge**
