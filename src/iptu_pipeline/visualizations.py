@@ -112,15 +112,33 @@ class IPTUVizualizer:
         return result
     
     def load_analysis_data(self, analysis_type: str, filename: str) -> pd.DataFrame:
-        """Load analysis data from CSV file in gold layer."""
-        file_path = self.analysis_path / analysis_type / filename
-        if not file_path.exists():
-            # Only warn if analysis directory exists (analysis was run but file missing)
-            # If directory doesn't exist, analysis was likely skipped (e.g., PySpark mode)
-            if self.analysis_path.exists() and (self.analysis_path / analysis_type).exists():
-                logger.warning(f"File not found: {file_path}")
+        """
+        Load analysis data from Parquet or CSV file in gold layer.
+        Prefers Parquet format if available, falls back to CSV.
+        """
+        from iptu_pipeline.config import settings
+        
+        # Try Parquet first (preferred)
+        parquet_path = settings.gold_parquet_dir / "analyses" / analysis_type / f"{filename.replace('.csv', '.parquet')}"
+        if parquet_path.exists():
+            try:
+                return pd.read_parquet(parquet_path)
+            except Exception as e:
+                logger.warning(f"Failed to load Parquet {parquet_path}: {e}, trying CSV")
+        
+        # Fallback to CSV
+        csv_path = settings.gold_csv_dir / analysis_type / filename
+        if csv_path.exists():
+            try:
+                return pd.read_csv(csv_path)
+            except Exception as e:
+                logger.error(f"Failed to load CSV {csv_path}: {e}")
                 return pd.DataFrame()
-        return pd.read_csv(file_path)
+        
+        # File not found
+        if (settings.gold_csv_dir / analysis_type).exists() or (settings.gold_parquet_dir / "analyses" / analysis_type).exists():
+            logger.warning(f"Analysis file not found: {filename} (checked Parquet and CSV)")
+        return pd.DataFrame()
     
     def load_from_gold(self, path: Path, use_spark: bool = False) -> pd.DataFrame:
         """
@@ -154,92 +172,51 @@ class IPTUVizualizer:
             logger.error(f"Could not load from gold layer {path}: {e}")
             return pd.DataFrame()
     
-    def _load_silver_data_with_fallback(self, required_columns: Optional[List[str]] = None) -> Optional[pd.DataFrame]:
+    def _load_gold_data(self, required_columns: Optional[List[str]] = None) -> Optional[pd.DataFrame]:
         """
-        Load data from silver layer with fallback to bronze layer if silver is corrupted.
+        Load consolidated data from gold layer.
         
         Args:
-            required_columns: List of required column names. If any are missing, fallback to bronze.
+            required_columns: List of required column names. If any are missing, returns None.
         
         Returns:
-            DataFrame with data, or None if loading fails completely.
+            DataFrame with data, or None if loading fails.
         """
-        from iptu_pipeline.config import SILVER_DIR, BRONZE_DIR
         from iptu_pipeline.config import settings
         
         if required_columns is None:
             required_columns = ["valor IPTU"]
         
-        # Try loading from silver layer first
-        silver_path = SILVER_DIR / "iptu_silver_consolidated" / "data.parquet"
+        # Load from gold layer parquet
+        gold_path = settings.gold_parquet_dir / "iptu_consolidated.parquet"
         
-        if silver_path.exists():
-            try:
-                df = pd.read_parquet(silver_path)
-                
-                # Check if DataFrame is empty
-                if df.empty:
-                    logger.warning(f"Silver layer file is EMPTY, falling back to bronze layer")
-                else:
-                    # Check if columns are corrupted (UUID column names)
-                    if len(df.columns) > 0 and df.columns[0].startswith('col-') and len(df.columns[0]) > 40:
-                        logger.warning(f"Silver layer has corrupted column names (UUID), falling back to bronze layer")
-                    else:
-                        # Check for required columns
-                        missing_cols = [col for col in required_columns if col not in df.columns]
-                        if missing_cols:
-                            logger.warning(f"Silver layer missing required columns {missing_cols}, falling back to bronze layer")
-                        else:
-                            logger.info(f"Loaded silver data: {len(df):,} rows, {len(df.columns)} columns")
-                            return df
-            except Exception as e:
-                logger.warning(f"Could not load from silver layer: {e}, falling back to bronze layer")
-        
-        # Fallback to bronze layer: load all years and concatenate
-        logger.info("Attempting to load data from bronze layer as fallback...")
-        bronze_dfs = []
-        years = sorted(settings.CSV_YEARS + settings.JSON_YEARS)
-        
-        for year in years:
-            bronze_path = BRONZE_DIR / f"iptu_{year}" / "data.parquet"
-            if bronze_path.exists():
-                try:
-                    year_df = pd.read_parquet(bronze_path)
-                    # Check if this year's data also has corrupted columns
-                    if len(year_df.columns) > 0 and year_df.columns[0].startswith('col-') and len(year_df.columns[0]) > 40:
-                        logger.warning(f"Year {year} bronze data also has corrupted columns, skipping")
-                        continue
-                    
-                    # Check for required columns
-                    missing_cols = [col for col in required_columns if col not in year_df.columns]
-                    if missing_cols:
-                        logger.warning(f"Year {year} bronze data missing required columns {missing_cols}, skipping")
-                        continue
-                    
-                    bronze_dfs.append(year_df)
-                    logger.debug(f"Loaded year {year}: {len(year_df):,} rows")
-                except Exception as e:
-                    logger.warning(f"Could not load year {year} from bronze layer: {e}")
-                    continue
-        
-        if not bronze_dfs:
-            logger.error("Could not load data from either silver or bronze layers")
+        if not gold_path.exists():
+            logger.error(f"Gold layer consolidated data not found: {gold_path}")
             return None
         
-        # Concatenate all years
         try:
-            df = pd.concat(bronze_dfs, ignore_index=True)
-            logger.info(f"Loaded and concatenated bronze data: {len(df):,} rows, {len(df.columns)} columns from {len(bronze_dfs)} years")
+            df = pd.read_parquet(gold_path)
             
-            # Verify required columns are present
-            missing_cols = [col for col in required_columns if col not in df.columns]
-            if missing_cols:
-                logger.error(f"After concatenation, still missing required columns: {missing_cols}")
+            # Check if DataFrame is empty
+            if df.empty:
+                logger.error(f"Gold layer file is EMPTY")
                 return None
             
+            # Check if columns are corrupted (UUID column names)
+            if len(df.columns) > 0 and df.columns[0].startswith('col-') and len(df.columns[0]) > 40:
+                logger.error(f"Gold layer has corrupted column names (UUID)")
+                return None
+            
+            # Check for required columns
+            missing_cols = [col for col in required_columns if col not in df.columns]
+            if missing_cols:
+                logger.error(f"Gold layer missing required columns: {missing_cols}")
+                return None
+            
+            logger.info(f"Loaded gold data: {len(df):,} rows, {len(df.columns)} columns")
             return df
         except Exception as e:
-            logger.error(f"Failed to concatenate bronze data: {e}")
+            logger.error(f"Could not load from gold layer: {e}")
             return None
     
     def plot_volume_by_year(self, save: bool = True) -> Optional[go.Figure]:
@@ -296,26 +273,32 @@ class IPTUVizualizer:
         
         df_top = df.head(top_n).sort_values("total_imoveis", ascending=False)
         
-        # Create subplots
+        # Create subplots with more spacing and constrained domains
         from plotly.subplots import make_subplots
         fig = make_subplots(
             rows=1, cols=2,
             specs=[[{"type": "pie"}, {"type": "bar"}]],
             subplot_titles=(
-                f"Distribuição por Tipo de Uso (Top {top_n})",
-                f"Volume por Tipo de Uso (Top {top_n})"
-            )
+                f"Distribuição por Tipo de Uso (Maiores)",
+                f"Volume por Tipo de Uso (Maiores)"
+            ),
+            horizontal_spacing=0.3,  # Increased spacing between subplots to prevent label overlap
+            vertical_spacing=0.2  # Increased spacing for titles to avoid overlap
         )
         
-        # Pie chart
+        # Pie chart - keep text inside to prevent overlap with bar chart
         colors = COLOR_PALETTE['categorical'][:len(df_top)]
         fig.add_trace(
             go.Pie(
-            labels=df_top["tipo_uso"],
+                labels=df_top["tipo_uso"],
                 values=df_top["total_imoveis"],
                 marker=dict(colors=colors),
-                textinfo='label+percent',
-                hovertemplate='<b>%{label}</b><br>Total: %{value:,}<br>Percentual: %{percent}<extra></extra>'
+                textinfo='percent',  # Show only percent to reduce clutter
+                textposition='inside',  # Keep text inside to prevent overlap with adjacent chart
+                textfont=dict(size=11),
+                insidetextorientation='auto',  # Auto-orient text inside slices
+                hovertemplate='<b>%{label}</b><br>Total: %{value:,}<br>Percentual: %{percent}<extra></extra>',
+                pull=[0.05 if i == 0 else 0 for i in range(len(df_top))]  # Slight pull on largest slice
             ),
             row=1, col=1
         )
@@ -340,11 +323,16 @@ class IPTUVizualizer:
         
         fig.update_layout(
             template=PLOT_TEMPLATE,
-            height=600,
+            height=700,  # Increased height to accommodate labels and titles
             showlegend=False,
-            title_text=f"Distribuição de Imóveis por Tipo de Uso (Top {top_n})",
-            title_x=0.5
+            title_text=f"Distribuição de Imóveis por Tipo de Uso (Maiores)",
+            title_x=0.5,
+            title_font_size=16,
+            margin=dict(l=50, r=50, t=120, b=50)  # Increased top margin to prevent title overlap
         )
+        
+        # Update subplot title positions to prevent overlap
+        fig.update_annotations(font_size=13, yshift=10)  # Move titles up and make slightly smaller
         
         fig.update_xaxes(title_text="Total de Imóveis", row=1, col=2)
         
@@ -384,7 +372,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Top {top_n} Bairros por Volume de Imóveis",
+                'text': f"Maiores Bairros por Volume de Imóveis",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
@@ -465,11 +453,11 @@ class IPTUVizualizer:
         
         import numpy as np
         
-        # Load raw data from silver layer with fallback to bronze
-        df = self._load_silver_data_with_fallback(required_columns=["valor IPTU", "ano do exercício"])
+        # Load raw data from gold layer
+        df = self._load_gold_data(required_columns=["valor IPTU", "ano do exercício"])
         
         if df is None:
-            logger.error("Could not load data for tax trends plot. Please ensure silver or bronze layer is available.")
+            logger.error("Could not load data for tax trends plot. Please ensure gold layer is available.")
             return None
         
         valor_iptu_clean = df["valor IPTU"].astype(str).str.replace(
@@ -604,7 +592,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Top {top_n} Bairros por Valor Médio de IPTU",
+                'text': f"Maiores Bairros por Valor Médio de IPTU",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
@@ -944,7 +932,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Top {top_n} Bairros com Maior Crescimento em Número de Imóveis",
+                'text': f"Maiores Bairros com Maior Crescimento em Número de Imóveis",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
@@ -1017,7 +1005,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Top {top_n} Bairros com Maior Crescimento em Valor Médio de IPTU",
+                'text': f"Maiores Bairros com Maior Crescimento em Valor Médio de IPTU",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
