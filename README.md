@@ -9,60 +9,54 @@
 
 ---
 
-## 📚 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-  - [Principais Descobertas](#-principais-descobertas)
-- [Key Features](#-key-features)
-  - [Core Capabilities](#-core-capabilities)
-  - [Data Quality Framework](#-data-quality-framework)
-- [Architecture](#-architecture)
+- [🎯 Overview](#🎯-overview)
+  - [📊 Principais Descobertas](#📊-principais-descobertas)
+- [✨ Key Features](#✨-key-features)
+  - [🏆 Core Capabilities](#🏆-core-capabilities)
+  - [🔬 Data Quality Framework](#🔬-data-quality-framework)
+- [🏗️ Architecture](#🏗️-architecture)
   - [Medallion Architecture (Delta Lake)](#medallion-architecture-delta-lake)
   - [Processing Pipeline](#processing-pipeline)
-- [Project Structure](#-project-structure)
-- [Installation](#-installation)
+- [📁 Project Structure](#📁-project-structure)
+- [🚀 Installation](#🚀-installation)
   - [Prerequisites](#prerequisites)
   - [Step 1: Clone Repository](#step-1-clone-repository)
   - [Step 2: Install Dependencies](#step-2-install-dependencies)
   - [Step 3: Verify Installation](#step-3-verify-installation)
-- [Quick Start](#-quick-start)
+- [🎮 Quick Start](#🎮-quick-start)
   - [Run Full Pipeline (Pandas)](#run-full-pipeline-pandas)
   - [Run Full Pipeline (PySpark)](#run-full-pipeline-pyspark)
   - [Run with Docker (Spark Standalone)](#run-with-docker-spark-standalone)
-- [Usage Guide](#-usage-guide)
+- [📖 Usage Guide](#📖-usage-guide)
   - [Basic Usage](#basic-usage)
   - [Advanced Usage](#advanced-usage)
-- [Configuration](#-configuration)
+- [⚙️ Configuration](#⚙️-configuration)
   - [Environment Variables](#environment-variables)
   - [Configuration File](#configuration-file)
   - [Spark Configuration](#spark-configuration)
-- [Data Quality](#-data-quality)
+- [🔍 Data Quality](#🔍-data-quality)
   - [Validation Framework](#validation-framework)
   - [Quality Reports](#quality-reports)
   - [Running Quality Checks](#running-quality-checks)
-- [Analytics & Visualizations](#-analytics--visualizations)
-  - [Análises e Respostas às Perguntas Principais](#-análises-e-respostas-às-perguntas-principais)
-  - [Todas as Visualizações Disponíveis](#-todas-as-visualizações-disponíveis)
-  - [Estrutura Completa das Análises](#-estrutura-completa-das-análises)
-- [Outputs](#-outputs)
+- [📊 Analytics & Visualizations](#📊-analytics--visualizations)
+  - [📈 Análises e Respostas às Perguntas Principais](#📈-análises-e-respostas-às-perguntas-principais)
+  - [📊 Todas as Visualizações Disponíveis](#📊-todas-as-visualizações-disponíveis)
+  - [📂 Estrutura Completa das Análises](#📂-estrutura-completa-das-análises)
+- [📤 Outputs](#📤-outputs)
   - [Medallion Layers](#medallion-layers)
   - [Analysis Results](#analysis-results)
   - [Visualizations](#visualizations)
   - [Legacy Outputs](#legacy-outputs)
   - [Catalog](#catalog)
-- [Advanced Features](#-advanced-features)
+- [🔬 Advanced Features](#🔬-advanced-features)
   - [Delta Lake Features](#delta-lake-features)
   - [PyDeequ Integration](#pydeequ-integration)
   - [Catalog System](#catalog-system)
   - [Incremental Processing](#incremental-processing)
   - [Export Script](#export-script)
-- [Troubleshooting](#-troubleshooting)
-  - [Common Issues](#common-issues)
-  - [Debugging](#debugging)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Support](#-support)
-- [Next Steps](#-next-steps)
+- [🎯 Next Steps](#🎯-next-steps)
 
 ---
 
@@ -157,15 +151,15 @@ The pipeline follows a **medallion architecture** with four data layers:
 └─────────────────────────────────────────────────────────────────┘
                                   ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                    GOLD LAYER (data/gold/)                     │
+│                    GOLD LAYER (data/gold/)                      │
 │  • Business-ready analytics                                     │
-│  • Volume analysis (total, by type, by neighborhood)           │
+│  • Volume analysis (total, by type, by neighborhood)            │
 │  • Age distribution analysis (construction age)                 │
-│  • Tax value analysis (by neighborhood, trends)                  │
+│  • Tax value analysis (by neighborhood, trends)                 │
 │  • Age-value relationship analysis                              │
 │  • Neighborhood evolution analysis                              │
 │  • Analysis results (CSV)                                       │
-│  • Visualizations (PNG, HTML) - 8 plots + HTML report          │
+│  • Visualizations (PNG, HTML) - 8 plots + HTML report           │
 │  • Dashboard reports                                            │
 │  • Year-over-year trends                                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -175,7 +169,7 @@ The pipeline follows a **medallion architecture** with four data layers:
 
 ```
 ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│  SOURCE  │  →   │  INGESTION   │  →   │VALIDATION    │  →   │TRANSFORM     │
+│  SOURCE  │  →   │  INGESTION   │  →   │  VALIDATION  │  →   │  TRANSFORM   │
 │  FILES   │      │   (Raw)      │      │  (Bronze)    │      │  (Silver)    │
 └──────────┘      └──────────────┘      └──────────────┘      └──────────────┘
                                                                     ↓
@@ -371,6 +365,32 @@ python main.py
 export IPTU_DATA_ENGINE=pyspark
 python main.py
 ```
+
+**Example Output:**
+
+```text
+INFO - Starting IPTU Data Pipeline
+INFO - Running pipeline (direct execution mode)
+INFO - Local mode optimized: 16 cores, 32 shuffle partitions, 4g driver memory
+INFO - Delta Lake + PyDeequ configured: JARs loaded + extensions set
+INFO - Creating Spark session...
+INFO - [OK] Raw files cataloged: 5 files
+INFO - [BRONZE LAYER] Cleaning and Cataloging Raw Data
+INFO - Processing year 2020 to bronze layer
+INFO - [OK] Loaded 2020: 403,915 rows, 32 columns
+INFO - [PASS] Validation PASSED for year 2020
+INFO - [OK] Year 2020 saved to bronze layer
+...
+INFO - [SILVER LAYER] Consolidating Bronze Data
+INFO - Consolidated 1,637,779 rows from 5 years
+INFO - [OK] Silver layer saved: 1,637,779 rows, 37 columns
+...
+INFO - [GOLD LAYER] Generating Analytics and Visualizations
+INFO - [OK] Generated 12 plots
+INFO - [OK] HTML report created: data/gold/plots/visualizations_report.html
+```
+
+> 📝 **Full Output**: See [`example_run.txt`](example_run.txt) for the complete execution log with detailed processing steps.
 
 ### Run with Docker (Spark Standalone)
 
@@ -626,7 +646,7 @@ Este pipeline gera análises abrangentes e visualizações automáticas sobre o 
 - **Evolução**: Crescimento de bairros em quantidade e valor ao longo do tempo
 
 **Resultados:**
-- 📊 **12 visualizações** em alta qualidade (PNG, 300 DPI)
+- 📊 **12 visualizações interativas** em formato HTML (Plotly) + PNG (alta qualidade)
 - 📈 **20+ análises** detalhadas (CSV)
 - 📄 **1 relatório HTML** interativo com todas as visualizações e tabelas
 
@@ -638,33 +658,33 @@ O pipeline realiza análises abrangentes que respondem às perguntas principais 
 
 ---
 
-#### 1️⃣ **Volume: Qual o total de imóveis e como o inventário está distribuído fisicamente?**
+#### 1. Volume: Qual o total de imóveis e como o inventário está distribuído fisicamente?
 
 **Resposta:** O dataset consolidado contém **1.637.779 imóveis** totais (acumulado de 2020-2024).
 
 **Distribuição por Tipo de Uso:**
 - Análise completa disponível em: `data/gold/analyses/volume_analysis/volume_by_type.csv`
-- Visualização: Ver `data/gold/plots/volume_by_type.png`
+- Visualização interativa: [`data/gold/plots/volume_by_type.html`](data/gold/plots/volume_by_type.html)
 
 **Distribuição por Bairro:**
 - Top 20 bairros com mais imóveis: `data/gold/analyses/volume_analysis/volume_by_neighborhood.csv`
-- Visualização: Ver `data/gold/plots/top_neighborhoods.png`
+- Visualização interativa: [`data/gold/plots/top_neighborhoods.html`](data/gold/plots/top_neighborhoods.html)
 
 **Distribuição Temporal:**
 - Volume por ano (2020-2024): `data/gold/analyses/volume_analysis/volume_by_year.csv`
-- Visualização: Ver `data/gold/plots/volume_by_year.png`
+- Visualização interativa: [`data/gold/plots/volume_by_year.html`](data/gold/plots/volume_by_year.html)
 
 **Distribuição Combinada (Ano × Tipo):**
 - Análise cruzada ano/tipo: `data/gold/analyses/volume_analysis/volume_by_year_type.csv`
-- Visualização: Ver `data/gold/plots/volume_by_year_type.png`
+- Visualização interativa: [`data/gold/plots/volume_by_year_type.html`](data/gold/plots/volume_by_year_type.html)
 
 **Distribuição por Tipo de Construção:**
 - Análise: `data/gold/analyses/distribution_analysis/distribution_by_construction.csv`
-- Visualização: Ver `data/gold/plots/distribution_by_construction.png`
+- Visualização interativa: [`data/gold/plots/distribution_by_construction.html`](data/gold/plots/distribution_by_construction.html)
 
 ---
 
-#### 2️⃣ **Idade: Como o inventário está distribuído em termos de idade de construção?**
+#### 2. Idade: Como o inventário está distribuído em termos de idade de construção?
 
 **Resposta:** A distribuição por faixas de idade mostra que:
 - **41-50 anos**: 467.333 imóveis (maior faixa)
@@ -678,13 +698,14 @@ O pipeline realiza análises abrangentes que respondem às perguntas principais 
 **Análise Completa:**
 - Distribuição por faixas: `data/gold/analyses/age_analysis/age_distribution_by_range.csv`
 - Estatísticas: `data/gold/analyses/age_analysis/age_statistics.csv`
-- Distribuição temporal: Ver `data/gold/plots/temporal_distribution.png`
+- Distribuição temporal: [`data/gold/plots/temporal_distribution.html`](data/gold/plots/temporal_distribution.html)
+- Distribuição por idade: [`data/gold/plots/age_distribution.html`](data/gold/plots/age_distribution.html)
 
 A maioria dos imóveis tem entre 21-50 anos de construção, indicando um inventário predominantemente de meia-idade.
 
 ---
 
-#### 3️⃣ **Valor (R$): Quais os bairros com imóveis mais valiosos? Há relação direta entre idade e valor?**
+#### 3. Valor (R$): Quais os bairros com imóveis mais valiosos? Há relação direta entre idade e valor?
 
 **Bairros com Maior Valor Médio de IPTU:**
 
@@ -698,8 +719,8 @@ A maioria dos imóveis tem entre 21-50 anos de construção, indicando um invent
 
 **Análise Completa:**
 - Top 20 bairros por valor médio: `data/gold/analyses/tax_value_analysis/avg_tax_by_neighborhood_top20.csv`
-- Visualização: Ver `data/gold/plots/top_tax_neighborhoods.png`
-- Tendências de valor: Ver `data/gold/plots/tax_trends.png`
+- Visualização interativa: [`data/gold/plots/top_tax_neighborhoods.html`](data/gold/plots/top_tax_neighborhoods.html)
+- Tendências de valor (Boxplot): [`data/gold/plots/tax_trends.html`](data/gold/plots/tax_trends.html)
 
 **Relação Idade × Valor:**
 
@@ -715,10 +736,11 @@ A análise mostra uma **relação inversa interessante**:
 
 **Análise Completa:**
 - Relação idade-valor: `data/gold/analyses/age_value_analysis/age_value_relationship.csv`
+- Visualização interativa: [`data/gold/plots/age_value_relationship.html`](data/gold/plots/age_value_relationship.html)
 
 ---
 
-#### 4️⃣ **Evolução: Quais bairros apresentam maior evolução em número de imóveis? E em relação a valor?**
+#### 4. Evolução: Quais bairros apresentam maior evolução em número de imóveis? E em relação a valor?
 
 **Bairros com Maior Crescimento em Quantidade:**
 
@@ -727,15 +749,16 @@ A análise comparativa entre o primeiro e último ano mostra que muitos bairros 
 **Top Crescimentos:**
 - Análise completa: `data/gold/analyses/evolution_analysis/top_growth_quantity.csv`
 - Análise por bairro: `data/gold/analyses/evolution_analysis/neighborhood_evolution.csv`
+- Visualização interativa: [`data/gold/plots/neighborhood_growth_quantity.html`](data/gold/plots/neighborhood_growth_quantity.html)
 
 **Bairros com Maior Crescimento em Valor:**
-
 - Análise completa: `data/gold/analyses/evolution_analysis/top_growth_value.csv`
+- Visualização interativa: [`data/gold/plots/neighborhood_growth_value.html`](data/gold/plots/neighborhood_growth_value.html)
 
 **Tendências Anuais:**
 - Estatísticas por ano: `data/gold/analyses/tax_value_analysis/tax_stats_by_year.csv`
 - Valores de propriedade: `data/gold/analyses/tax_value_analysis/property_value_by_year.csv`
-- Visualização: Ver `data/gold/plots/tax_trends.png`
+- Visualização interativa: [`data/gold/plots/tax_trends.html`](data/gold/plots/tax_trends.html)
 
 **Observação:** A evolução precisa ser analisada considerando que mudanças administrativas, consolidações de registros e melhorias na qualidade dos dados podem afetar as comparações ano a ano.
 
@@ -743,55 +766,70 @@ A análise comparativa entre o primeiro e último ano mostra que muitos bairros 
 
 ### 📊 Todas as Visualizações Disponíveis
 
-Todas as visualizações são geradas automaticamente e salvas em `data/gold/plots/`:
+Todas as visualizações são geradas automaticamente em formato HTML interativo e PNG (alta qualidade, 2x scale) e salvas em `data/gold/plots/`:
 
 #### 1. Análise de Volume
 
 **Volume por Ano** - Gráfico de barras do total de imóveis por ano
-![Volume por Ano](data/gold/plots/volume_by_year.png)
+
+[![Volume por Ano](data/gold/plots/volume_by_year.png)](data/gold/plots/volume_by_year.html)
 
 **Volume por Tipo** - Gráfico de pizza + barras por tipo de uso
-![Volume por Tipo](data/gold/plots/volume_by_type.png)
+
+[![Volume por Tipo](data/gold/plots/volume_by_type.png)](data/gold/plots/volume_by_type.html)
 
 **Top Bairros** - Top 20 bairros por quantidade de imóveis
-![Top Bairros](data/gold/plots/top_neighborhoods.png)
+
+[![Top Bairros](data/gold/plots/top_neighborhoods.png)](data/gold/plots/top_neighborhoods.html)
 
 **Volume Ano × Tipo** - Gráfico de área empilhada mostrando evolução
-![Volume Ano × Tipo](data/gold/plots/volume_by_year_type.png)
+
+[![Volume Ano × Tipo](data/gold/plots/volume_by_year_type.png)](data/gold/plots/volume_by_year_type.html)
 
 **Distribuição por Construção** - Gráfico de barras por tipo de construção
-![Distribuição por Construção](data/gold/plots/distribution_by_construction.png)
+
+[![Distribuição por Construção](data/gold/plots/distribution_by_construction.png)](data/gold/plots/distribution_by_construction.html)
 
 **Distribuição Temporal** - Timeline mostrando distribuição ao longo do tempo
-![Distribuição Temporal](data/gold/plots/temporal_distribution.png)
+
+[![Distribuição Temporal](data/gold/plots/temporal_distribution.png)](data/gold/plots/temporal_distribution.html)
 
 #### 2. Análise de Valores de IPTU
 
 **Tendências de IPTU (Boxplot)** - Distribuição de valores de IPTU por ano
-![Tendências de IPTU](data/gold/plots/tax_trends.png)
+
+[![Tendências de IPTU](data/gold/plots/tax_trends.png)](data/gold/plots/tax_trends.html)
 
 **Top Bairros por IPTU** - Top 20 bairros por valor médio de IPTU
-![Top Bairros por IPTU](data/gold/plots/top_tax_neighborhoods.png)
+
+[![Top Bairros por IPTU](data/gold/plots/top_tax_neighborhoods.png)](data/gold/plots/top_tax_neighborhoods.html)
 
 #### 3. Análise de Idade de Construção
 
 **Distribuição por Faixas de Idade** - Distribuição de imóveis por idade de construção
-![Distribuição por Idade](data/gold/plots/age_distribution.png)
+
+[![Distribuição por Idade](data/gold/plots/age_distribution.png)](data/gold/plots/age_distribution.html)
 
 **Relação Idade × Valor** - Valor médio de IPTU por faixa de idade de construção
-![Relação Idade × Valor](data/gold/plots/age_value_relationship.png)
+
+[![Relação Idade × Valor](data/gold/plots/age_value_relationship.png)](data/gold/plots/age_value_relationship.html)
 
 #### 4. Análise de Evolução de Bairros
 
 **Crescimento em Quantidade** - Top bairros com maior crescimento em número de imóveis
-![Crescimento em Quantidade](data/gold/plots/neighborhood_growth_quantity.png)
+
+[![Crescimento em Quantidade](data/gold/plots/neighborhood_growth_quantity.png)](data/gold/plots/neighborhood_growth_quantity.html)
 
 **Crescimento em Valor** - Top bairros com maior crescimento em valor médio de IPTU
-![Crescimento em Valor](data/gold/plots/neighborhood_growth_value.png)
 
-**Visualizações Interativas:**
-- Todas as visualizações estão disponíveis no relatório HTML interativo: `data/gold/plots/visualizations_report.html`
-- Abra o arquivo HTML no navegador para visualizar todas as análises interativamente
+[![Crescimento em Valor](data/gold/plots/neighborhood_growth_value.png)](data/gold/plots/neighborhood_growth_value.html)
+
+#### 📄 Relatório Completo
+
+**Relatório HTML Interativo** - Todas as visualizações e análises em um único documento
+- Visualização: [`visualizations_report.html`](data/gold/plots/visualizations_report.html)
+
+> 💡 **Dica**: Clique em qualquer imagem acima para abrir a versão HTML interativa no navegador. Use zoom, hover e filtros para explorar os dados!
 
 ---
 
@@ -885,30 +923,32 @@ analyses/
 
 ### Visualizations
 
-`data/gold/plots/` contém 12 visualizações em alta qualidade (300 DPI) + relatório HTML:
+`data/gold/plots/` contém 12 visualizações interativas em formato HTML (Plotly) + relatório HTML:
 
 #### Análise de Volume (6 visualizações)
-1. `volume_by_year.png` - Volume de imóveis por ano
-2. `volume_by_type.png` - Distribuição por tipo de uso
-3. `top_neighborhoods.png` - Top 20 bairros por quantidade
-4. `volume_by_year_type.png` - Evolução ano × tipo
-5. `distribution_by_construction.png` - Distribuição por tipo de construção
-6. `temporal_distribution.png` - Distribuição temporal
+1. [`volume_by_year.html`](data/gold/plots/volume_by_year.html) - Volume de imóveis por ano
+2. [`volume_by_type.html`](data/gold/plots/volume_by_type.html) - Distribuição por tipo de uso
+3. [`top_neighborhoods.html`](data/gold/plots/top_neighborhoods.html) - Top 20 bairros por quantidade
+4. [`volume_by_year_type.html`](data/gold/plots/volume_by_year_type.html) - Evolução ano × tipo
+5. [`distribution_by_construction.html`](data/gold/plots/distribution_by_construction.html) - Distribuição por tipo de construção
+6. [`temporal_distribution.html`](data/gold/plots/temporal_distribution.html) - Distribuição temporal
 
 #### Análise de Valores de IPTU (2 visualizações)
-7. `tax_trends.png` - Tendências de valores de IPTU (Boxplot por ano)
-8. `top_tax_neighborhoods.png` - Top 20 bairros por valor de IPTU
+7. [`tax_trends.html`](data/gold/plots/tax_trends.html) - Tendências de valores de IPTU (Boxplot por ano)
+8. [`top_tax_neighborhoods.html`](data/gold/plots/top_tax_neighborhoods.html) - Top 20 bairros por valor de IPTU
 
 #### Análise de Idade de Construção (2 visualizações)
-9. `age_distribution.png` - Distribuição por faixas de idade de construção
-10. `age_value_relationship.png` - Relação entre idade de construção e valor de IPTU
+9. [`age_distribution.html`](data/gold/plots/age_distribution.html) - Distribuição por faixas de idade de construção
+10. [`age_value_relationship.html`](data/gold/plots/age_value_relationship.html) - Relação entre idade de construção e valor de IPTU
 
 #### Análise de Evolução de Bairros (2 visualizações)
-11. `neighborhood_growth_quantity.png` - Crescimento em número de imóveis por bairro
-12. `neighborhood_growth_value.png` - Crescimento em valor médio de IPTU por bairro
+11. [`neighborhood_growth_quantity.html`](data/gold/plots/neighborhood_growth_quantity.html) - Crescimento em número de imóveis por bairro
+12. [`neighborhood_growth_value.html`](data/gold/plots/neighborhood_growth_value.html) - Crescimento em valor médio de IPTU por bairro
 
 #### Relatório HTML
-13. `visualizations_report.html` - Relatório HTML interativo com todas as visualizações e tabelas detalhadas
+13. [`visualizations_report.html`](data/gold/plots/visualizations_report.html) - Relatório HTML interativo com todas as visualizações e tabelas detalhadas
+
+> 💡 **Nota**: Todas as visualizações são geradas em formato HTML interativo usando Plotly. Abra os arquivos no navegador para explorar os dados com zoom, hover e filtros interativos.
 
 ### Legacy Outputs
 
@@ -968,122 +1008,6 @@ Add new years without reprocessing:
 - Filters metadata columns
 - Normalizes timestamps
 - Creates single Parquet file
-
----
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### 1. GLIBC Mismatch (Docker)
-
-```
-Error: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found
-```
-
-**Solution**: Ensure `.venv` is built inside the container:
-
-```dockerfile
-# In Dockerfile
-RUN python -m venv /app/.venv
-```
-
-#### 2. DateType Conversion Error
-
-```
-Error: Unable to map type DateType
-```
-
-**Solution**: Already fixed in `engine.py`. PySpark DateType is converted to TimestampType before `toPandas()`.
-
-#### 3. Spark Connection Issues (Windows)
-
-```
-Error: Connecting to DESKTOP-XXX/192.168.X.X:XXXXX failed
-```
-
-**Solution**: Configured in `engine.py`:
-```python
-.config("spark.driver.host", "localhost")
-.config("spark.driver.bindAddress", "127.0.0.1")
-```
-
-#### 4. Out of Memory (PySpark)
-
-```
-Error: OutOfMemoryError: Java heap space
-```
-
-**Solution**: Increase memory in `engine.py`:
-```python
-.config("spark.driver.memory", "16g")
-.config("spark.executor.memory", "16g")
-```
-
-#### 5. Delta Column Mapping
-
-```
-Error: Found invalid character(s) among ' ,;{}()...' in column names
-```
-
-**Solution**: Enabled in `main_pipeline.py`:
-```python
-.option("delta.columnMapping.mode", "name")
-```
-
-### Debugging
-
-Enable debug logging using environment variable:
-
-```bash
-# Linux/Mac
-export IPTU_LOG_LEVEL=DEBUG
-
-# Windows PowerShell
-$env:IPTU_LOG_LEVEL="DEBUG"
-
-# Or in Python code:
-from iptu_pipeline.utils.logger import set_log_level
-set_log_level("DEBUG")
-```
-
-The logging system is centralized and efficient:
-- Single log file per application run (in `logs/` directory)
-- Console output for immediate feedback
-- File logging with detailed timestamps
-- Hierarchical logger names (e.g., `iptu_pipeline.engine`, `iptu_pipeline.pipelines.main_pipeline`)
-
-View Spark logs:
-
-```python
-spark.sparkContext.setLogLevel("DEBUG")
-```
-
----
-
-## 🤝 Contributing
-
-This project was developed for the Neuro Tech technical challenge. For contributions:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests
-4. Submit a pull request
-
----
-
-## 📄 License
-
-This project was developed for the Neuro Tech technical challenge.
-
----
-
-## 📞 Support
-
-For issues or questions:
-- Check `ARCHITECTURE.md` for design decisions
-- Check `DOCKER_SETUP.md` for Docker issues
-- Review logs in `logs/` directory
 
 ---
 

@@ -66,7 +66,7 @@ class DataEngine:
         
         # Check if running in Docker/cluster mode
         # Use SPARK_MASTER_URL if set (from docker-compose), otherwise check SPARK_MASTER, fallback to local
-        spark_master = os.getenv("SPARK_MASTER_URL") or os.getenv("SPARK_MASTER", "local[*]")
+        spark_master = os.getenv("SPARK_MASTER_URL") or os.getenv("SPARK_MASTER", "local[16]")
         
         # In Docker, prefer connecting to Spark cluster
         if "SPARK_MASTER_URL" in os.environ:
@@ -82,9 +82,6 @@ class DataEngine:
         # Base Spark configuration (common for all modes)
         builder = SparkSession.builder \
             .appName("IPTU_Pipeline") \
-            .config("spark.sql.adaptive.enabled", "true") \
-            .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
-            .config("spark.sql.adaptive.skewJoin.enabled", "true") \
             .config("spark.sql.warehouse.dir", str(Path(__file__).parent.parent.parent / "spark-warehouse")) \
             .config("spark.pyspark.python", python_executable) \
             .config("spark.pyspark.driver.python", python_executable) \
@@ -109,16 +106,17 @@ class DataEngine:
             
             # Optimized settings for local mode
             builder = builder.master(spark_master) \
-                .config("spark.driver.memory", "8g") \
-                .config("spark.driver.maxResultSize", "2g") \
-                .config("spark.sql.shuffle.partitions", str(num_cores * 4)) \
-                .config("spark.default.parallelism", str(num_cores * 2)) \
-                .config("spark.sql.adaptive.localShuffleReader.enabled", "true") \
+                .config("spark.driver.memory", "4g") \
+                .config("spark.driver.maxResultSize", "1g") \
+                .config("spark.sql.shuffle.partitions", str(num_cores * 2)) \
+                .config("spark.default.parallelism", str(num_cores)) \
+                .config("spark.sql.adaptive.enabled", "false") \
+                .config("spark.sql.adaptive.coalescePartitions.enabled", "false") \
                 .config("spark.driver.host", "localhost") \
-                .config("spark.driver.bindAddress", "127.0.0.1") \
-                .config("spark.network.timeout", "300s")
+                .config("spark.network.timeout", "300s") \
+                .config("spark.sql.execution.arrow.maxRecordsPerBatch", "5000")
             
-            logger.info(f"Local mode optimized: {num_cores} cores, {num_cores * 4} shuffle partitions, 8g driver memory")
+            logger.info(f"Local mode optimized: {num_cores} cores, {num_cores * 2} shuffle partitions, 4g driver memory, adaptive execution disabled")
         else:
             # Cluster mode - set master after cluster-specific configs
             # Memory will be configured below for cluster mode
@@ -220,6 +218,8 @@ class DataEngine:
                              .config("spark.driver.memory", "2g") \
                              .config("spark.executor.memory", "2g") \
                              .config("spark.sql.shuffle.partitions", "200") \
+                             .config("spark.sql.adaptive.enabled", "true") \
+                             .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
                              .config("spark.network.timeout", "800s") \
                              .config("spark.executor.heartbeatInterval", "60s") \
                              .config("spark.rpc.askTimeout", "600s") \

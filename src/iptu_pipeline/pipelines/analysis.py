@@ -917,10 +917,11 @@ class IPTUAnalyzer:
             analysis_dir.mkdir(exist_ok=True)
             
             for result_name, result_df in analysis_results.items():
-                file_path = analysis_dir / f"{result_name}.csv"
+                csv_path = analysis_dir / f"{result_name}.csv"
+                parquet_path = analysis_dir / f"{result_name}.parquet"
                 
                 if self.is_spark and hasattr(result_df, 'toPandas'):
-                    # Convert PySpark DataFrame to Pandas for CSV export
+                    # Convert PySpark DataFrame to Pandas for export
                     # Handle DateType columns (PySpark DateType cannot be directly converted to Pandas)
                     try:
                         from pyspark.sql.types import DateType
@@ -938,15 +939,26 @@ class IPTUAnalyzer:
                                 result_df = result_df.withColumn(col_name, F.to_timestamp(F.col(col_name)))
                         
                         pandas_df = result_df.toPandas()
-                        pandas_df.to_csv(file_path, index=False)
-                        logger.info(f"  Saved: {file_path} ({len(pandas_df)} rows)")
+                        # Save as CSV (for backward compatibility)
+                        pandas_df.to_csv(csv_path, index=False)
+                        logger.info(f"  Saved CSV: {csv_path} ({len(pandas_df)} rows)")
+                        # Save as Parquet (for gold layer)
+                        pandas_df.to_parquet(parquet_path, index=False, engine='pyarrow')
+                        logger.info(f"  Saved Parquet: {parquet_path} ({len(pandas_df)} rows)")
                     except Exception as e:
-                        logger.warning(f"  Failed to save {file_path}: {e}")
+                        logger.warning(f"  Failed to save {result_name}: {e}")
                 elif isinstance(result_df, pd.DataFrame):
-                    result_df.to_csv(file_path, index=False)
-                    logger.info(f"  Saved: {file_path} ({len(result_df)} rows)")
-            else:
-                logger.warning(f"  Skipping {result_name}: unsupported DataFrame type")
+                    # Save as CSV (for backward compatibility)
+                    result_df.to_csv(csv_path, index=False)
+                    logger.info(f"  Saved CSV: {csv_path} ({len(result_df)} rows)")
+                    # Save as Parquet (for gold layer)
+                    try:
+                        result_df.to_parquet(parquet_path, index=False, engine='pyarrow')
+                        logger.info(f"  Saved Parquet: {parquet_path} ({len(result_df)} rows)")
+                    except Exception as e:
+                        logger.warning(f"  Failed to save Parquet for {result_name}: {e}")
+                else:
+                    logger.warning(f"  Skipping {result_name}: unsupported DataFrame type")
         
         logger.info("[OK] All analyses saved")
 
