@@ -5,7 +5,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.4+-orange.svg)](https://spark.apache.org/)
 [![Delta Lake](https://img.shields.io/badge/Delta%20Lake-3.3+-0078D4.svg)](https://delta.io/)
-[![PyDeequ](https://img.shields.io/badge/PyDeequ-1.5+-red.svg)](https://github.com/pydeequ/pydeequ)
+[![PyDeequ](https://img.shields.io/badge/PyDeequ-1.5+-red.svg)](https://github.com/awslabs/python-deequ)
 
 ---
 
