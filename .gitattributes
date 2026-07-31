@@ -1,0 +1,15 @@
+# Language statistics
+#
+# GitHub's linguist counts committed bytes, so generated artefacts can completely
+# misrepresent a repository. This one reported as ~99.4% HTML because 148 MB of
+# Plotly output was committed against ~350 KB of actual Python.
+#
+# The HTML is no longer tracked (see .gitignore), but these rules keep the language
+# bar honest if any is regenerated in place, and stop the exploratory notebooks —
+# which are analysis, not the shipped pipeline — from dominating the remainder.
+#
+# https://github.com/github-linguist/linguist/blob/main/docs/overrides.md
+data/gold/plots/** linguist-generated
+*.html linguist-generated
+notebooks/** linguist-documentation
+*.ipynb linguist-documentation

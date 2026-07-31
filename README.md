@@ -643,6 +643,24 @@ Este pipeline gera análises abrangentes e visualizações automáticas sobre o 
 
 Todas as análises são geradas automaticamente ao executar o pipeline e salvos em `data/gold/analyses/` e `data/gold/plots/`.
 
+### Nota sobre artefatos gerados
+
+Os **PNG** das 12 visualizações são versionados, para que este README seja legível sem
+executar nada. Os **HTML interativos do Plotly não são versionados**: cada um embute a
+biblioteca Plotly inteira (~4,6 MB por arquivo, e 74 MB no relatório combinado), o que
+somava mais de 148 MB de artefato gerado no repositório — mais de 99% do seu tamanho — e
+fazia o GitHub classificá-lo como um projeto HTML em vez de Python.
+
+Para regenerar os HTML localmente:
+
+```bash
+python main.py                  # executa o pipeline completo
+# ou apenas a etapa de visualização:
+jupyter nbconvert --execute notebooks/visualizations.ipynb
+```
+
+Os arquivos aparecem em `data/gold/plots/` e são ignorados pelo Git.
+
 ### Análises e Respostas às Perguntas Principais
 
 O pipeline realiza análises abrangentes que respondem às perguntas principais sobre o inventário de imóveis do IPTU:
@@ -655,23 +673,23 @@ O pipeline realiza análises abrangentes que respondem às perguntas principais 
 
 **Distribuição por Tipo de Uso:**
 - Análise completa disponível em: `data/gold/analyses/volume_analysis/volume_by_type.csv`
-- Visualização interativa: [`data/gold/plots/volume_by_type.html`](data/gold/plots/volume_by_type.html)
+- Visualização interativa: [`data/gold/plots/volume_by_type.png`](data/gold/plots/volume_by_type.png)
 
 **Distribuição por Bairro:**
 - Top 20 bairros com mais imóveis: `data/gold/analyses/volume_analysis/volume_by_neighborhood.csv`
-- Visualização interativa: [`data/gold/plots/top_neighborhoods.html`](data/gold/plots/top_neighborhoods.html)
+- Visualização interativa: [`data/gold/plots/top_neighborhoods.png`](data/gold/plots/top_neighborhoods.png)
 
 **Distribuição Temporal:**
 - Volume por ano (2020-2024): `data/gold/analyses/volume_analysis/volume_by_year.csv`
-- Visualização interativa: [`data/gold/plots/volume_by_year.html`](data/gold/plots/volume_by_year.html)
+- Visualização interativa: [`data/gold/plots/volume_by_year.png`](data/gold/plots/volume_by_year.png)
 
 **Distribuição Combinada (Ano × Tipo):**
 - Análise cruzada ano/tipo: `data/gold/analyses/volume_analysis/volume_by_year_type.csv`
-- Visualização interativa: [`data/gold/plots/volume_by_year_type.html`](data/gold/plots/volume_by_year_type.html)
+- Visualização interativa: [`data/gold/plots/volume_by_year_type.png`](data/gold/plots/volume_by_year_type.png)
 
 **Distribuição por Tipo de Construção:**
 - Análise: `data/gold/analyses/distribution_analysis/distribution_by_construction.csv`
-- Visualização interativa: [`data/gold/plots/distribution_by_construction.html`](data/gold/plots/distribution_by_construction.html)
+- Visualização interativa: [`data/gold/plots/distribution_by_construction.png`](data/gold/plots/distribution_by_construction.png)
 
 ---
 
@@ -689,8 +707,8 @@ O pipeline realiza análises abrangentes que respondem às perguntas principais 
 **Análise Completa:**
 - Distribuição por faixas: `data/gold/analyses/age_analysis/age_distribution_by_range.csv`
 - Estatísticas: `data/gold/analyses/age_analysis/age_statistics.csv`
-- Distribuição temporal: [`data/gold/plots/temporal_distribution.html`](data/gold/plots/temporal_distribution.html)
-- Distribuição por idade: [`data/gold/plots/age_distribution.html`](data/gold/plots/age_distribution.html)
+- Distribuição temporal: [`data/gold/plots/temporal_distribution.png`](data/gold/plots/temporal_distribution.png)
+- Distribuição por idade: [`data/gold/plots/age_distribution.png`](data/gold/plots/age_distribution.png)
 
 A maioria dos imóveis tem entre 21-50 anos de construção, indicando um inventário predominantemente de meia-idade.
 
@@ -710,8 +728,8 @@ A maioria dos imóveis tem entre 21-50 anos de construção, indicando um invent
 
 **Análise Completa:**
 - Top 20 bairros por valor médio: `data/gold/analyses/tax_value_analysis/avg_tax_by_neighborhood_top20.csv`
-- Visualização interativa: [`data/gold/plots/top_tax_neighborhoods.html`](data/gold/plots/top_tax_neighborhoods.html)
-- Tendências de valor (Boxplot): [`data/gold/plots/tax_trends.html`](data/gold/plots/tax_trends.html)
+- Visualização interativa: [`data/gold/plots/top_tax_neighborhoods.png`](data/gold/plots/top_tax_neighborhoods.png)
+- Tendências de valor (Boxplot): [`data/gold/plots/tax_trends.png`](data/gold/plots/tax_trends.png)
 
 **Relação Idade × Valor:**
 
@@ -727,7 +745,7 @@ A análise mostra uma **relação inversa interessante**:
 
 **Análise Completa:**
 - Relação idade-valor: `data/gold/analyses/age_value_analysis/age_value_relationship.csv`
-- Visualização interativa: [`data/gold/plots/age_value_relationship.html`](data/gold/plots/age_value_relationship.html)
+- Visualização interativa: [`data/gold/plots/age_value_relationship.png`](data/gold/plots/age_value_relationship.png)
 
 ---
 
@@ -740,16 +758,16 @@ A análise comparativa entre o primeiro e último ano mostra que muitos bairros 
 **Top Crescimentos:**
 - Análise completa: `data/gold/analyses/evolution_analysis/top_growth_quantity.csv`
 - Análise por bairro: `data/gold/analyses/evolution_analysis/neighborhood_evolution.csv`
-- Visualização interativa: [`data/gold/plots/neighborhood_growth_quantity.html`](data/gold/plots/neighborhood_growth_quantity.html)
+- Visualização interativa: [`data/gold/plots/neighborhood_growth_quantity.png`](data/gold/plots/neighborhood_growth_quantity.png)
 
 **Bairros com Maior Crescimento em Valor:**
 - Análise completa: `data/gold/analyses/evolution_analysis/top_growth_value.csv`
-- Visualização interativa: [`data/gold/plots/neighborhood_growth_value.html`](data/gold/plots/neighborhood_growth_value.html)
+- Visualização interativa: [`data/gold/plots/neighborhood_growth_value.png`](data/gold/plots/neighborhood_growth_value.png)
 
 **Tendências Anuais:**
 - Estatísticas por ano: `data/gold/analyses/tax_value_analysis/tax_stats_by_year.csv`
 - Valores de propriedade: `data/gold/analyses/tax_value_analysis/property_value_by_year.csv`
-- Visualização interativa: [`data/gold/plots/tax_trends.html`](data/gold/plots/tax_trends.html)
+- Visualização interativa: [`data/gold/plots/tax_trends.png`](data/gold/plots/tax_trends.png)
 
 **Observação:** A evolução precisa ser analisada considerando que mudanças administrativas, consolidações de registros e melhorias na qualidade dos dados podem afetar as comparações ano a ano.
 
@@ -763,62 +781,62 @@ Todas as visualizações são geradas automaticamente em formato HTML interativo
 
 **Volume por Ano** - Gráfico de barras do total de imóveis por ano
 
-[![Volume por Ano](data/gold/plots/volume_by_year.png)](data/gold/plots/volume_by_year.html)
+[![Volume por Ano](data/gold/plots/volume_by_year.png)](data/gold/plots/volume_by_year.png)
 
 **Volume por Tipo** - Gráfico de pizza + barras por tipo de uso
 
-[![Volume por Tipo](data/gold/plots/volume_by_type.png)](data/gold/plots/volume_by_type.html)
+[![Volume por Tipo](data/gold/plots/volume_by_type.png)](data/gold/plots/volume_by_type.png)
 
 **Top Bairros** - Top 20 bairros por quantidade de imóveis
 
-[![Top Bairros](data/gold/plots/top_neighborhoods.png)](data/gold/plots/top_neighborhoods.html)
+[![Top Bairros](data/gold/plots/top_neighborhoods.png)](data/gold/plots/top_neighborhoods.png)
 
 **Volume Ano × Tipo** - Gráfico de área empilhada mostrando evolução
 
-[![Volume Ano × Tipo](data/gold/plots/volume_by_year_type.png)](data/gold/plots/volume_by_year_type.html)
+[![Volume Ano × Tipo](data/gold/plots/volume_by_year_type.png)](data/gold/plots/volume_by_year_type.png)
 
 **Distribuição por Construção** - Gráfico de barras por tipo de construção
 
-[![Distribuição por Construção](data/gold/plots/distribution_by_construction.png)](data/gold/plots/distribution_by_construction.html)
+[![Distribuição por Construção](data/gold/plots/distribution_by_construction.png)](data/gold/plots/distribution_by_construction.png)
 
 **Distribuição Temporal** - Timeline mostrando distribuição ao longo do tempo
 
-[![Distribuição Temporal](data/gold/plots/temporal_distribution.png)](data/gold/plots/temporal_distribution.html)
+[![Distribuição Temporal](data/gold/plots/temporal_distribution.png)](data/gold/plots/temporal_distribution.png)
 
 #### 2. Análise de Valores de IPTU
 
 **Tendências de IPTU (Boxplot)** - Distribuição de valores de IPTU por ano
 
-[![Tendências de IPTU](data/gold/plots/tax_trends.png)](data/gold/plots/tax_trends.html)
+[![Tendências de IPTU](data/gold/plots/tax_trends.png)](data/gold/plots/tax_trends.png)
 
 **Top Bairros por IPTU** - Top 20 bairros por valor médio de IPTU
 
-[![Top Bairros por IPTU](data/gold/plots/top_tax_neighborhoods.png)](data/gold/plots/top_tax_neighborhoods.html)
+[![Top Bairros por IPTU](data/gold/plots/top_tax_neighborhoods.png)](data/gold/plots/top_tax_neighborhoods.png)
 
 #### 3. Análise de Idade de Construção
 
 **Distribuição por Faixas de Idade** - Distribuição de imóveis por idade de construção
 
-[![Distribuição por Idade](data/gold/plots/age_distribution.png)](data/gold/plots/age_distribution.html)
+[![Distribuição por Idade](data/gold/plots/age_distribution.png)](data/gold/plots/age_distribution.png)
 
 **Relação Idade × Valor** - Valor médio de IPTU por faixa de idade de construção
 
-[![Relação Idade × Valor](data/gold/plots/age_value_relationship.png)](data/gold/plots/age_value_relationship.html)
+[![Relação Idade × Valor](data/gold/plots/age_value_relationship.png)](data/gold/plots/age_value_relationship.png)
 
 #### 4. Análise de Evolução de Bairros
 
 **Crescimento em Quantidade** - Top bairros com maior crescimento em número de imóveis
 
-[![Crescimento em Quantidade](data/gold/plots/neighborhood_growth_quantity.png)](data/gold/plots/neighborhood_growth_quantity.html)
+[![Crescimento em Quantidade](data/gold/plots/neighborhood_growth_quantity.png)](data/gold/plots/neighborhood_growth_quantity.png)
 
 **Crescimento em Valor** - Top bairros com maior crescimento em valor médio de IPTU
 
-[![Crescimento em Valor](data/gold/plots/neighborhood_growth_value.png)](data/gold/plots/neighborhood_growth_value.html)
+[![Crescimento em Valor](data/gold/plots/neighborhood_growth_value.png)](data/gold/plots/neighborhood_growth_value.png)
 
 #### Relatório Completo
 
 **Relatório HTML Interativo** - Todas as visualizações e análises em um único documento
-- Visualização: [`visualizations_report.html`](data/gold/plots/visualizations_report.html)
+- Relatório combinado: `visualizations_report.html` — gerado localmente ao executar o pipeline (não versionado; ver Nota sobre artefatos gerados).
 
 > **Dica**: Clique em qualquer imagem acima para abrir a versão HTML interativa no navegador. Use zoom, hover e filtros para explorar os dados!
 
@@ -917,27 +935,27 @@ analyses/
 `data/gold/plots/` contém 12 visualizações interativas em formato HTML (Plotly) + relatório HTML:
 
 #### Análise de Volume (6 visualizações)
-1. [`volume_by_year.html`](data/gold/plots/volume_by_year.html) - Volume de imóveis por ano
-2. [`volume_by_type.html`](data/gold/plots/volume_by_type.html) - Distribuição por tipo de uso
-3. [`top_neighborhoods.html`](data/gold/plots/top_neighborhoods.html) - Top 20 bairros por quantidade
-4. [`volume_by_year_type.html`](data/gold/plots/volume_by_year_type.html) - Evolução ano × tipo
-5. [`distribution_by_construction.html`](data/gold/plots/distribution_by_construction.html) - Distribuição por tipo de construção
-6. [`temporal_distribution.html`](data/gold/plots/temporal_distribution.html) - Distribuição temporal
+1. [`volume_by_year.png`](data/gold/plots/volume_by_year.png) - Volume de imóveis por ano
+2. [`volume_by_type.png`](data/gold/plots/volume_by_type.png) - Distribuição por tipo de uso
+3. [`top_neighborhoods.png`](data/gold/plots/top_neighborhoods.png) - Top 20 bairros por quantidade
+4. [`volume_by_year_type.png`](data/gold/plots/volume_by_year_type.png) - Evolução ano × tipo
+5. [`distribution_by_construction.png`](data/gold/plots/distribution_by_construction.png) - Distribuição por tipo de construção
+6. [`temporal_distribution.png`](data/gold/plots/temporal_distribution.png) - Distribuição temporal
 
 #### Análise de Valores de IPTU (2 visualizações)
-7. [`tax_trends.html`](data/gold/plots/tax_trends.html) - Tendências de valores de IPTU (Boxplot por ano)
-8. [`top_tax_neighborhoods.html`](data/gold/plots/top_tax_neighborhoods.html) - Top 20 bairros por valor de IPTU
+7. [`tax_trends.png`](data/gold/plots/tax_trends.png) - Tendências de valores de IPTU (Boxplot por ano)
+8. [`top_tax_neighborhoods.png`](data/gold/plots/top_tax_neighborhoods.png) - Top 20 bairros por valor de IPTU
 
 #### Análise de Idade de Construção (2 visualizações)
-9. [`age_distribution.html`](data/gold/plots/age_distribution.html) - Distribuição por faixas de idade de construção
-10. [`age_value_relationship.html`](data/gold/plots/age_value_relationship.html) - Relação entre idade de construção e valor de IPTU
+9. [`age_distribution.png`](data/gold/plots/age_distribution.png) - Distribuição por faixas de idade de construção
+10. [`age_value_relationship.png`](data/gold/plots/age_value_relationship.png) - Relação entre idade de construção e valor de IPTU
 
 #### Análise de Evolução de Bairros (2 visualizações)
-11. [`neighborhood_growth_quantity.html`](data/gold/plots/neighborhood_growth_quantity.html) - Crescimento em número de imóveis por bairro
-12. [`neighborhood_growth_value.html`](data/gold/plots/neighborhood_growth_value.html) - Crescimento em valor médio de IPTU por bairro
+11. [`neighborhood_growth_quantity.png`](data/gold/plots/neighborhood_growth_quantity.png) - Crescimento em número de imóveis por bairro
+12. [`neighborhood_growth_value.png`](data/gold/plots/neighborhood_growth_value.png) - Crescimento em valor médio de IPTU por bairro
 
 #### Relatório HTML
-13. [`visualizations_report.html`](data/gold/plots/visualizations_report.html) - Relatório HTML interativo com todas as visualizações e tabelas detalhadas
+13. `visualizations_report.html` - Relatório HTML interativo com todas as visualizações e tabelas detalhadas. Gerado localmente ao executar o pipeline; não versionado.
 
 > **Nota**: Todas as visualizações são geradas em formato HTML interativo usando Plotly. Abra os arquivos no navegador para explorar os dados com zoom, hover e filtros interativos.
 
