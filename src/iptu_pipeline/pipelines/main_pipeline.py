@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 
 from iptu_pipeline.config import (
     settings,
-    RAW_DIR, BRONZE_DIR, SILVER_DIR, GOLD_DIR, CATALOG_DIR, DATA_DIR
+    RAW_DIR, BRONZE_DIR, SILVER_DIR, GOLD_DIR, CATALOG_DIR
 )
 from iptu_pipeline.utils.logger import setup_logger
 from iptu_pipeline.utils.data_quality import DataQualityValidator
@@ -277,7 +277,7 @@ class IPTUPipeline:
             logger.error(f"⚠️  WARNING: Row count is {expected_ratio:.2f}x higher than expected!")
             logger.error(f"   Expected: ~{total_rows_before_concat:,} rows")
             logger.error(f"   Actual: {row_count:,} rows")
-            logger.error(f"   This suggests data duplication during concatenation!")
+            logger.error("   This suggests data duplication during concatenation!")
             # Don't fail, but log the issue
         
         # Validate column names BEFORE saving - CRITICAL: Silver layer MUST have correct column names
@@ -287,8 +287,8 @@ class IPTUPipeline:
             if uuid_cols:
                 logger.error(f"❌ CRITICAL ERROR: UUID column names detected in consolidated DataFrame: {len(uuid_cols)} columns")
                 logger.error(f"   Sample UUID columns: {uuid_cols[:5]}")
-                logger.error(f"   This indicates a concatenation schema alignment issue!")
-                logger.error(f"   Column names MUST be preserved correctly in silver layer.")
+                logger.error("   This indicates a concatenation schema alignment issue!")
+                logger.error("   Column names MUST be preserved correctly in silver layer.")
                 raise ValueError(
                     f"Silver layer consolidation failed: {len(uuid_cols)} columns have corrupted UUID names. "
                     f"This indicates a problem during DataFrame concatenation. "
@@ -340,7 +340,7 @@ class IPTUPipeline:
                     verify_cols = list(verify_df.columns)
                     uuid_verify = [col for col in verify_cols if str(col).startswith('col-') and len(str(col)) > 40]
                     if uuid_verify:
-                        logger.error(f"❌ CRITICAL: Saved file has UUID columns! This indicates a save/read issue.")
+                        logger.error("❌ CRITICAL: Saved file has UUID columns! This indicates a save/read issue.")
                         raise ValueError(f"Silver layer file corruption detected: {len(uuid_verify)} UUID columns in saved file")
                     logger.info(f"✅ Verification passed: Saved file has {len(verify_cols)} correct column names")
             except Exception as e:
@@ -374,7 +374,7 @@ class IPTUPipeline:
             logger.info("-" * 80)
             # Analysis now supports both Pandas and PySpark
             self.analyzer = IPTUAnalyzer(consolidated_df, engine=self.engine.engine_type)
-            all_analyses = self.analyzer.generate_all_analyses()
+            self.analyzer.generate_all_analyses()
             # Save analyses to gold layer (data/gold/analyses)
             self.analyzer.save_analyses(output_dir=settings.analysis_output_path)
             logger.info(f"[OK] Analysis complete - saved to {settings.analysis_output_path}")
@@ -434,7 +434,7 @@ class IPTUPipeline:
                 
                 self._save_to_gold(gold_summary, GOLD_DIR, "gold_summary_by_year_type")
                 gold_outputs["summary_by_year_type"] = gold_summary
-                logger.info(f"[OK] Saved gold_summary_by_year_type to Delta and Parquet")
+                logger.info("[OK] Saved gold_summary_by_year_type to Delta and Parquet")
             
             # Gold 2: Summary by Neighborhood
             logger.info("Creating gold output: Summary by Neighborhood")
@@ -453,7 +453,7 @@ class IPTUPipeline:
                 
                 self._save_to_gold(gold_neighborhood, GOLD_DIR, "gold_summary_by_neighborhood")
                 gold_outputs["summary_by_neighborhood"] = gold_neighborhood
-                logger.info(f"[OK] Saved gold_summary_by_neighborhood to Delta and Parquet")
+                logger.info("[OK] Saved gold_summary_by_neighborhood to Delta and Parquet")
             
             # Gold 3: Year-over-Year Trends
             logger.info("Creating gold output: Year-over-Year Trends")
@@ -473,7 +473,7 @@ class IPTUPipeline:
                 
                 self._save_to_gold(gold_trends, GOLD_DIR, "gold_year_over_year_trends")
                 gold_outputs["year_over_year_trends"] = gold_trends
-                logger.info(f"[OK] Saved gold_year_over_year_trends to Delta and Parquet")
+                logger.info("[OK] Saved gold_year_over_year_trends to Delta and Parquet")
             
         else:
             # Pandas implementation
@@ -497,7 +497,7 @@ class IPTUPipeline:
                 
                 self._save_to_gold(gold_summary, GOLD_DIR, "gold_summary_by_year_type")
                 gold_outputs["summary_by_year_type"] = gold_summary
-                logger.info(f"[OK] Saved gold_summary_by_year_type to Parquet")
+                logger.info("[OK] Saved gold_summary_by_year_type to Parquet")
             
             logger.warning("Pandas gold layer aggregation partially implemented. Consider using PySpark for full features.")
         

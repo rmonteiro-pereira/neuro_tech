@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from iptu_pipeline.engine import DataEngine
-from iptu_pipeline.config import settings, BRONZE_DIR, SILVER_DIR, GOLD_DIR, DATA_DIR
+from iptu_pipeline.config import settings, BRONZE_DIR, SILVER_DIR, GOLD_DIR
 from iptu_pipeline.utils.logger import setup_logger
 from iptu_pipeline.utils.medallion_quality import MedallionDataQuality
 from iptu_pipeline.pipelines.transformation import DataTransformer
@@ -290,7 +290,7 @@ class MedallionPipeline:
                 
                 self._save_to_gold(gold_summary, GOLD_DIR, "gold_summary_by_year_type")
                 gold_outputs["summary_by_year_type"] = gold_summary
-                logger.info(f"[OK] Saved gold_summary_by_year_type to Delta and Parquet")
+                logger.info("[OK] Saved gold_summary_by_year_type to Delta and Parquet")
             
             # Gold 2: Summary by Neighborhood
             logger.info("Creating gold output: Summary by Neighborhood")
@@ -309,7 +309,7 @@ class MedallionPipeline:
                 
                 self._save_to_gold(gold_neighborhood, GOLD_DIR, "gold_summary_by_neighborhood")
                 gold_outputs["summary_by_neighborhood"] = gold_neighborhood
-                logger.info(f"[OK] Saved gold_summary_by_neighborhood to Delta and Parquet")
+                logger.info("[OK] Saved gold_summary_by_neighborhood to Delta and Parquet")
             
             # Gold 3: Year-over-Year Trends
             logger.info("Creating gold output: Year-over-Year Trends")
@@ -329,7 +329,7 @@ class MedallionPipeline:
                 
                 self._save_to_gold(gold_trends, GOLD_DIR, "gold_year_over_year_trends")
                 gold_outputs["year_over_year_trends"] = gold_trends
-                logger.info(f"[OK] Saved gold_year_over_year_trends to Delta and Parquet")
+                logger.info("[OK] Saved gold_year_over_year_trends to Delta and Parquet")
             
             # Gold 4: Full consolidated dataset (for advanced analytics)
             logger.info("Creating gold output: Full Consolidated Dataset")
@@ -338,7 +338,7 @@ class MedallionPipeline:
             
             self._save_to_gold(gold_full, GOLD_DIR, "gold_full_consolidated")
             gold_outputs["full_consolidated"] = gold_full
-            logger.info(f"[OK] Saved gold_full_consolidated to Delta and Parquet")
+            logger.info("[OK] Saved gold_full_consolidated to Delta and Parquet")
             
         else:
             # Pandas implementation
@@ -359,7 +359,7 @@ class MedallionPipeline:
                 
                 self._save_to_gold(gold_summary, GOLD_DIR, "gold_summary_by_year_type")
                 gold_outputs["summary_by_year_type"] = gold_summary
-                logger.info(f"[OK] Saved gold_summary_by_year_type to Parquet")
+                logger.info("[OK] Saved gold_summary_by_year_type to Parquet")
             
             # Similar implementations for other gold outputs...
             # (Pandas version simplified for brevity)
@@ -399,7 +399,7 @@ class MedallionPipeline:
         logger.info(f"Gold layer (refined/analysis/plots): {GOLD_DIR}")
         
         # Bronze layer: Clean and catalog raw data
-        bronze_dfs = self.ingest_to_bronze(years=years, incremental=incremental)
+        self.ingest_to_bronze(years=years, incremental=incremental)
         
         # Silver layer: Consolidate all years
         silver_df = self.process_to_silver(years=years, incremental=incremental)

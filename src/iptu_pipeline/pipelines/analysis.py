@@ -4,7 +4,7 @@ Provides various analyses on the consolidated dataset.
 Supports both Pandas and PySpark DataFrames.
 """
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, Optional, Any, Union
 import pandas as pd
 
 try:
@@ -14,8 +14,7 @@ except ImportError:
     PYSPARK_AVAILABLE = False
     SparkDataFrame = Any
 
-from iptu_pipeline.config import ANALYSIS_OUTPUT_PATH
-from iptu_pipeline.engine import DataEngine, get_engine
+from iptu_pipeline.engine import get_engine
 from iptu_pipeline.utils.logger import setup_logger
 
 logger = setup_logger("analysis")
@@ -66,7 +65,6 @@ class IPTUAnalyzer:
         columns = self.engine.get_columns(self.df)
         
         if self.is_spark:
-            from pyspark.sql import functions as F
             from pyspark.sql.functions import col, count, round
         
         # Total properties
@@ -524,7 +522,7 @@ class IPTUAnalyzer:
         
         if self.is_spark:
             from pyspark.sql import functions as F
-            from pyspark.sql.functions import col, count, when, lit, round, desc, mean as spark_mean, min as spark_min, max as spark_max
+            from pyspark.sql.functions import col, count, when, lit, desc, mean as spark_mean, min as spark_min, max as spark_max
             from pyspark.sql.types import IntegerType
             
             # Calculate age from construction year
@@ -633,7 +631,7 @@ class IPTUAnalyzer:
             return results
         
         if self.is_spark:
-            from pyspark.sql.functions import col, avg, count, when, lit, round, regexp_replace, trim
+            from pyspark.sql.functions import col, avg, count, when, lit, regexp_replace, trim
             from pyspark.sql.types import IntegerType, DoubleType
             
             # Calculate age and clean values
@@ -735,8 +733,7 @@ class IPTUAnalyzer:
             return results
         
         if self.is_spark:
-            from pyspark.sql.functions import col, count, sum, avg, first, last, when, desc, regexp_replace, trim
-            from pyspark.sql.window import Window
+            from pyspark.sql.functions import col, count, avg, desc, regexp_replace, trim
             from pyspark.sql.types import DoubleType
             
             # Clean valor IPTU

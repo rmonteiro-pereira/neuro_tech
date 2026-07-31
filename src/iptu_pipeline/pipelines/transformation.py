@@ -3,7 +3,6 @@ Data transformation and unification module for IPTU pipeline.
 Handles schema differences between years and consolidates datasets.
 Supports both Pandas and PySpark engines.
 """
-from pathlib import Path
 from typing import Dict, List, Optional
 
 try:
@@ -16,7 +15,7 @@ except ImportError:
 from iptu_pipeline.engine import get_engine
 from iptu_pipeline.config import SCHEMA_MAPPING_2024, COMMON_COLUMNS
 from iptu_pipeline.utils.logger import setup_logger
-from iptu_pipeline.utils.column_matcher import match_and_map_columns, KNOWN_COLUMN_MAPPINGS
+from iptu_pipeline.utils.column_matcher import match_and_map_columns
 
 logger = setup_logger("transformation")
 
@@ -104,7 +103,7 @@ class DataTransformer:
         if self.engine.engine_type == "pyspark":
             # PySpark type casting
             try:
-                from pyspark.sql.types import IntegerType, DoubleType
+                from pyspark.sql.types import DoubleType
                 from pyspark.sql import functions as F
                 
                 for col_name in numeric_columns:
@@ -285,8 +284,8 @@ class DataTransformer:
                     # Test on a sample to avoid processing entire large column
                     sample = test_series.dropna().head(100)
                     if len(sample) > 0:
-                        # Try to use .str accessor on a sample
-                        test_result = sample.str.strip()
+                        # Try to use .str accessor on a sample (raises if not string-like)
+                        sample.str.strip()
                         string_columns.append((col_name, original_dtype))
                 except (AttributeError, TypeError):
                     # Column is not string type, skip it

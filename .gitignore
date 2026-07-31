@@ -18,3 +18,8 @@ logs/
 outputs/
 *.egg-info/
 *pycache*
+.pytest_cache/
+.ruff_cache/
+spark-warehouse/
+.env
+iptu_refined.parquet

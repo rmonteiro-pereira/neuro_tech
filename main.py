@@ -26,7 +26,7 @@ def main():
         run_analysis=True
     )
     
-    logger.info(f"Pipeline completed successfully!")
+    logger.info("Pipeline completed successfully!")
     # Use engine to get counts (works for both pandas and pyspark)
     from iptu_pipeline.engine import get_engine
     from iptu_pipeline.config import settings

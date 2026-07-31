@@ -12,7 +12,7 @@ warnings.filterwarnings('ignore')
 try:
     import plotly.graph_objects as go
     import plotly.express as px
-    from plotly.subplots import make_subplots
+    from plotly.subplots import make_subplots  # noqa: F401 - availability probe
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
@@ -41,7 +41,7 @@ PLOT_CONFIG = {
 
 # Check if kaleido is available for PNG export
 try:
-    import kaleido
+    import kaleido  # noqa: F401 - availability probe
     KALEIDO_AVAILABLE = True
 except ImportError:
     KALEIDO_AVAILABLE = False
@@ -199,12 +199,12 @@ class IPTUVizualizer:
             
             # Check if DataFrame is empty
             if df.empty:
-                logger.error(f"Gold layer file is EMPTY")
+                logger.error("Gold layer file is EMPTY")
                 return None
             
             # Check if columns are corrupted (UUID column names)
             if len(df.columns) > 0 and df.columns[0].startswith('col-') and len(df.columns[0]) > 40:
-                logger.error(f"Gold layer has corrupted column names (UUID)")
+                logger.error("Gold layer has corrupted column names (UUID)")
                 return None
             
             # Check for required columns
@@ -274,13 +274,13 @@ class IPTUVizualizer:
         df_top = df.head(top_n).sort_values("total_imoveis", ascending=False)
         
         # Create subplots with more spacing and constrained domains
-        from plotly.subplots import make_subplots
+        from plotly.subplots import make_subplots  # noqa: F401 - availability probe
         fig = make_subplots(
             rows=1, cols=2,
             specs=[[{"type": "pie"}, {"type": "bar"}]],
             subplot_titles=(
-                f"Distribuição por Tipo de Uso (Maiores)",
-                f"Volume por Tipo de Uso (Maiores)"
+                "Distribuição por Tipo de Uso (Maiores)",
+                "Volume por Tipo de Uso (Maiores)"
             ),
             horizontal_spacing=0.3,  # Increased spacing between subplots to prevent label overlap
             vertical_spacing=0.2  # Increased spacing for titles to avoid overlap
@@ -325,7 +325,7 @@ class IPTUVizualizer:
             template=PLOT_TEMPLATE,
             height=700,  # Increased height to accommodate labels and titles
             showlegend=False,
-            title_text=f"Distribuição de Imóveis por Tipo de Uso (Maiores)",
+            title_text="Distribuição de Imóveis por Tipo de Uso (Maiores)",
             title_x=0.5,
             title_font_size=16,
             margin=dict(l=50, r=50, t=120, b=50)  # Increased top margin to prevent title overlap
@@ -372,7 +372,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Maiores Bairros por Volume de Imóveis",
+                'text': "Maiores Bairros por Volume de Imóveis",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
@@ -451,7 +451,6 @@ class IPTUVizualizer:
         if not PLOTLY_AVAILABLE:
             return None
         
-        import numpy as np
         
         # Load raw data from gold layer
         df = self._load_gold_data(required_columns=["valor IPTU", "ano do exercício"])
@@ -592,7 +591,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Maiores Bairros por Valor Médio de IPTU",
+                'text': "Maiores Bairros por Valor Médio de IPTU",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
@@ -734,7 +733,7 @@ class IPTUVizualizer:
         df = df.sort_values("order")
         
         # Create subplots
-        from plotly.subplots import make_subplots
+        from plotly.subplots import make_subplots  # noqa: F401 - availability probe
         fig = make_subplots(
             rows=1, cols=2,
             specs=[[{"type": "bar"}, {"type": "pie"}]],
@@ -808,7 +807,7 @@ class IPTUVizualizer:
             if gold_path.exists():
                 df = self.load_from_gold(gold_path)
             else:
-                logger.warning(f"Age-value relationship data not found in gold layer. Run pipeline to generate it.")
+                logger.warning("Age-value relationship data not found in gold layer. Run pipeline to generate it.")
                 return None
         
         if df.empty:
@@ -820,7 +819,7 @@ class IPTUVizualizer:
         df = df.sort_values("order")
         
         # Create a grouped bar chart with secondary y-axis
-        from plotly.subplots import make_subplots
+        from plotly.subplots import make_subplots  # noqa: F401 - availability probe
         
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         
@@ -932,7 +931,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Maiores Bairros com Maior Crescimento em Número de Imóveis",
+                'text': "Maiores Bairros com Maior Crescimento em Número de Imóveis",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
@@ -1005,7 +1004,7 @@ class IPTUVizualizer:
         
         fig.update_layout(
             title={
-                'text': f"Maiores Bairros com Maior Crescimento em Valor Médio de IPTU",
+                'text': "Maiores Bairros com Maior Crescimento em Valor Médio de IPTU",
                 'x': 0.5,
                 'xanchor': 'center',
                 'font': {'size': 16}
