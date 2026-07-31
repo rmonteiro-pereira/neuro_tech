@@ -661,6 +661,25 @@ jupyter nbconvert --execute notebooks/visualizations.ipynb
 
 Os arquivos aparecem em `data/gold/plots/` e são ignorados pelo Git.
 
+#### As análises em CSV também não são versionadas
+
+Este README cita cerca de doze arquivos sob `data/gold/analyses/` — por exemplo
+`total_properties.csv` (1.637.779 imóveis), `volume_by_year.csv` e
+`avg_tax_by_neighborhood_top20.csv` — junto com os números que eles contêm.
+
+**Esses CSV não estão no repositório.** O `.gitignore` exclui `data/gold/*` e abre exceção
+apenas para `data/gold/plots/`, de modo que `data/gold/analyses/` nunca foi versionado. Quem
+seguir uma dessas citações para conferir um número não encontra o arquivo.
+
+Os números citados vêm de uma execução real do pipeline sobre os dados públicos do IPTU de
+Recife (2020–2024) e são reproduzíveis com `python main.py`, que regenera
+`data/gold/analyses/` por inteiro. Mas **até que os CSV sejam versionados, cada número aqui é
+uma afirmação que o leitor não pode verificar sem executar o pipeline** — o que é uma
+limitação real, e é preferível declará-la a deixar o leitor descobrir um link quebrado.
+
+Os arquivos são pequenos (kilobytes, ao contrário dos 148 MB de HTML), então versioná-los é
+uma opção razoável e resolveria isso de vez.
+
 ### Análises e Respostas às Perguntas Principais
 
 O pipeline realiza análises abrangentes que respondem às perguntas principais sobre o inventário de imóveis do IPTU:
