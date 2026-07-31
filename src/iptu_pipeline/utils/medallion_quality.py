@@ -133,7 +133,7 @@ class MedallionDataQuality:
             except Exception as e:
                 logger.warning(f"PyDeequ profiling failed, using basic checks: {str(e)}")
                 # Fallback to basic null count (skip isnan for non-numeric types)
-                from pyspark.sql.functions import col, isnan, isnull, when, count
+                from pyspark.sql.functions import col, isnan, when, count
                 from pyspark.sql.types import DateType, TimestampType, StringType
                 
                 # Get column types
@@ -228,7 +228,7 @@ class MedallionDataQuality:
             results["metrics"]["column_count"] = col_count
             
             # Check for duplicates
-            from pyspark.sql.functions import col, count
+            from pyspark.sql.functions import col
             key_cols = ["Número do contribuinte", "ano do exercício"]
             existing_cols = [c for c in key_cols if c in df.columns]
             
@@ -266,7 +266,7 @@ class MedallionDataQuality:
             
             # Validate CEP format (should be numeric, 8 digits)
             if "CEP" in df.columns:
-                from pyspark.sql.functions import when, length, col, regexp_replace, isnan, isnull
+                from pyspark.sql.functions import col
                 
                 # Convert to string and check length
                 invalid_cep = df.filter(
@@ -369,7 +369,7 @@ class MedallionDataQuality:
             results["metrics"]["column_count"] = col_count
             
             # Check for null values in key columns (skip isnan for non-numeric types)
-            from pyspark.sql.functions import col, count, when, isnan, isnull
+            from pyspark.sql.functions import col, count, when, isnan
             from pyspark.sql.types import DateType, TimestampType, StringType
             
             # Get column types

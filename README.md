@@ -2,6 +2,7 @@
 
 > **A comprehensive, production-ready data pipeline for IPTU (Property Tax) data processing, featuring a medallion architecture with PySpark support, data quality validation, and automated analytics.**
 
+[![CI](https://github.com/rmonteiro-pereira/neuro_tech/actions/workflows/ci.yml/badge.svg)](https://github.com/rmonteiro-pereira/neuro_tech/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.4+-orange.svg)](https://spark.apache.org/)
 [![Delta Lake](https://img.shields.io/badge/Delta%20Lake-3.3+-0078D4.svg)](https://delta.io/)
@@ -40,6 +41,7 @@
   - [Validation Framework](#validation-framework)
   - [Quality Reports](#quality-reports)
   - [Running Quality Checks](#running-quality-checks)
+- [Testing & CI](#testing--ci)
 - [Analytics & Visualizations](#analytics--visualizations)
   - [Análises e Respostas às Perguntas Principais](#análises-e-respostas-às-perguntas-principais)
   - [Todas as Visualizações Disponíveis](#todas-as-visualizações-disponíveis)
@@ -145,7 +147,7 @@ The pipeline follows a **medallion architecture** with four data layers:
 │  • Consolidated multi-year dataset                              │
 │  • Unified schema across all years                              │
 │  • Time-series data ready for analytics                         │
-│  • Deduplication applied                                        │
+│  • Duplicates detected and reported (removed at export time)    │
 │  • Delta/Parquet format                                         │
 └─────────────────────────────────────────────────────────────────┘
                                   ↓
@@ -212,16 +214,18 @@ neuro_tech/
 │
 ├── src/iptu_pipeline/                       # Main source code
 │   ├── __init__.py
-│   ├── config.py                            # Configuration management
-│   ├── engine.py                            # DataEngine abstraction
+│   ├── config.py                            # Configuration management (pydantic-settings)
+│   ├── config_example.py                    # Configuration usage examples
+│   ├── engine.py                            # DataEngine abstraction (Pandas/PySpark)
 │   ├── dashboard.py                         # Dashboard generation
 │   ├── visualizations.py                    # Plot generation
-│   ├── orchestration.py                     # Prefect orchestration
-│   ├── airflow_dag.py                       # Airflow DAG
+│   ├── orchestration.py                     # Direct (non-Airflow) execution
+│   ├── airflow_dag.py                       # Airflow DAG (source copy)
 │   │
 │   ├── pipelines/                           # Pipeline modules
 │   │   ├── __init__.py
 │   │   ├── main_pipeline.py                 # Main orchestration
+│   │   ├── medallion_pipeline.py            # Medallion-specific pipeline
 │   │   ├── ingestion.py                     # Data ingestion
 │   │   ├── transformation.py                # Data transformation
 │   │   └── analysis.py                      # Data analysis
@@ -234,33 +238,32 @@ neuro_tech/
 │       ├── raw_catalog.py                   # Catalog system
 │       └── column_matcher.py                # Schema matching
 │
+├── tests/                                   # Pytest suite (Pandas engine, synthetic data)
+│
 ├── scripts/                                 # Utility scripts
-│   └── generate_plots.py                    # Standalone plot generator
+│   ├── generate_plots.py                    # Standalone plot generator
+│   ├── export_refined_dataset.py            # Export consolidated dataset
+│   ├── example_usage.py                     # Usage examples
+│   └── example_pyspark.py                   # PySpark engine example
 │
 ├── notebooks/                               # Jupyter notebooks
-│   ├── pipeline_execution.ipynb            # Pipeline walkthrough
-│   └── visualizations.ipynb                # Visualization exploration
+│   ├── eda_notebook.ipynb                   # Exploratory analysis
+│   └── visualizations.ipynb                 # Visualization exploration
 │
 ├── dags/                                    # Airflow DAGs
-│   └── iptu_pipeline_dag.py                # Deployable DAG
+│   └── iptu_pipeline_dag.py                 # Deployable DAG
 │
-├── logs/                                    # Application logs
-│
-├── docker-compose.yml                       # Spark cluster setup
-├── docker-compose.standalone.yml            # Standalone Spark
+├── .github/workflows/ci.yml                 # CI: ruff + pytest
+├── docker-compose.yml                       # Spark cluster + Airflow setup
+├── Dockerfile                               # Airflow image with Java/PySpark
 │
 ├── main.py                                  # Entry point
-├── export_refined_dataset.py               # Export script
-├── test_pydeequ.py                         # PyDeequ tests
-├── test_delta.py                           # Delta Lake tests
+├── pyproject.toml                           # Project metadata + tool config
+├── uv.lock                                  # Pinned dependencies
+├── requirements-pyspark.txt                 # PySpark dependencies (pip route)
+├── requirements.txt                         # Base dependencies (pip route)
 │
-├── pyproject.toml                          # Project metadata
-├── requirements-pyspark.txt                # PySpark dependencies
-├── requirements.txt                        # Base dependencies
-│
-├── README.md                               # This file
-├── ARCHITECTURE.md                         # Architecture details
-├── DOCKER_SETUP.md                         # Docker guide
+├── README.md                                # This file
 └── .gitignore
 ```
 
@@ -386,17 +389,17 @@ INFO - [OK] HTML report created: data/gold/plots/visualizations_report.html
 
 > **Full Output**: See [`example_run.txt`](example_run.txt) for the complete execution log with detailed processing steps.
 
-### Run with Docker (Spark Standalone)
+### Run with Docker (Spark cluster + Airflow)
 
 ```bash
-# Using standalone Spark (simplest)
-docker-compose -f docker-compose.standalone.yml up --build
-
-# Using Spark cluster
 docker-compose up --build
 ```
 
-Access Spark UI: http://localhost:4040
+Access the Spark master UI at http://localhost:8080.
+
+> **Note**: the compose file uses hardcoded `airflow`/`airflow` (Postgres) and
+> `admin`/`admin` (Airflow UI) credentials. This is a local development setup only —
+> nothing is exposed beyond localhost, and it must not be reused as-is anywhere public.
 
 ---
 
@@ -468,7 +471,7 @@ else:
 
 # Generate dashboard
 dashboard = IPTUDashboard(df=df)
-dashboard.generate_dashboard()
+dashboard.generate_dashboard_html()
 dashboard.generate_summary_report()
 ```
 
@@ -477,7 +480,7 @@ dashboard.generate_summary_report()
 #### Export Refined Dataset
 
 ```bash
-python export_refined_dataset.py --output iptu_refined.parquet --engine pyspark
+python scripts/export_refined_dataset.py --output iptu_refined.parquet --engine pyspark
 ```
 
 This creates a single Parquet file for sharing, with:
@@ -489,11 +492,10 @@ This creates a single Parquet file for sharing, with:
 #### Run Airflow DAG
 
 ```bash
-# Start Airflow (see AIRFLOW_SETUP.md)
-airflow webserver --port 8080
-airflow scheduler
+# Start the full stack (Postgres + Spark + Airflow) via Docker
+docker-compose up --build
 
-# Trigger DAG
+# Trigger the DAG (or use the Airflow UI at http://localhost:8081)
 airflow dags trigger iptu_medallion_pipeline
 ```
 
@@ -624,6 +626,39 @@ results = quality.validate_bronze_layer(df_bronze, year=2020)
 df_silver = engine.read_parquet(SILVER_DIR / "iptu_silver_consolidated")
 results = quality.validate_silver_layer(df_silver, year=None)
 ```
+
+---
+
+## Testing & CI
+
+The repository ships a **98-test pytest suite** (`tests/`) that runs entirely on the
+**Pandas engine with synthetic data** — no Spark, Java, or raw data files required:
+
+- **End-to-end medallion run**: raw → bronze → silver → gold on synthetic CSV + JSON years,
+  asserting layer files exist, rows are conserved, the 2024 schema is normalized, layer
+  metadata is stamped, and the catalog records completion.
+- **Failure paths**: empty datasets, row counts below threshold, missing required columns,
+  year mismatches — the validator must *fail* these, and the tests check that it does.
+- **Schema alignment**: fuzzy column matching (`quantidade de pavimentos` → `quant pavimentos`,
+  `valor cobrado de IPTU` → `valor IPTU`), missing-column filling, dtype standardization.
+- **Engine guards**: concat schema alignment without row loss, duplicate-column rejection,
+  corrupted-column-name (UUID) detection before parquet writes.
+- **Config**: `IPTU_*` environment overrides, `.env` file support, path fallbacks.
+
+```bash
+uv sync
+uv run pytest          # 98 passed
+uv run ruff check src scripts dags tests main.py
+```
+
+**CI** (`.github/workflows/ci.yml`) runs ruff + the full suite on every push/PR against the
+committed `uv.lock`.
+
+**What CI does not cover, explicitly**: the PySpark/Delta Lake/PyDeequ execution path and
+Airflow DAG runs. Those need a JVM Spark session that downloads Deequ/Delta JARs from Maven —
+slow and flaky on hosted runners. That path is exercised via the Docker setup
+(see [`example_run.txt`](example_run.txt) for a full PySpark run log); scoping CI to the
+Pandas path was a deliberate trade-off, not an oversight.
 
 ---
 
@@ -1035,9 +1070,13 @@ Add new years without reprocessing:
 
 ## Next Steps
 
+Done:
+- [x] Unit + end-to-end test coverage (98 tests, Pandas engine; see [Testing & CI](#testing--ci))
+- [x] CI pipeline (ruff + pytest on every push/PR)
+
 Future enhancements:
-- [ ] Unit test coverage
-- [ ] CI/CD pipeline
+- [ ] Spark integration tests (containerized, so the Delta/PyDeequ path is CI-covered too)
+- [ ] Version the small `data/gold/analyses/` CSVs so README figures are verifiable in-repo
 - [ ] Web dashboard deployment
 - [ ] Database integration (PostgreSQL/MongoDB)
 - [ ] Real-time streaming support (Kafka)

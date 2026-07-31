@@ -2,7 +2,6 @@
 Orchestration module for IPTU pipeline.
 Provides direct execution mode. For Airflow orchestration, use airflow_dag.py
 """
-from pathlib import Path
 from typing import Optional, List
 
 from iptu_pipeline.utils.logger import setup_logger

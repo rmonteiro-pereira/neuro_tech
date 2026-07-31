@@ -6,13 +6,16 @@ Este script demonstra diferentes formas de usar o pipeline.
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add src to path (script lives in scripts/, src/ is a sibling)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from iptu_pipeline.orchestration import run_orchestrated_pipeline
 from iptu_pipeline.dashboard import IPTUDashboard
-from iptu_pipeline.config import CONSOLIDATED_DATA_PATH
+from iptu_pipeline.config import SILVER_DIR
 import pandas as pd
+
+# Consolidated dataset lives in the silver layer
+CONSOLIDATED_DATA_PATH = SILVER_DIR / "iptu_silver_consolidated" / "data.parquet"
 
 
 def example_full_pipeline():
@@ -27,7 +30,7 @@ def example_full_pipeline():
         run_analysis=True  # True = executa análises automaticamente
     )
     
-    print(f"\n✓ Pipeline completo executado com sucesso!")
+    print("\n✓ Pipeline completo executado com sucesso!")
     print(f"  Dataset consolidado: {len(consolidated_df):,} linhas, {len(consolidated_df.columns)} colunas")
     return consolidated_df
 
@@ -47,7 +50,7 @@ def example_incremental_pipeline():
         run_analysis=True
     )
     
-    print(f"\n✓ Pipeline incremental executado com sucesso!")
+    print("\n✓ Pipeline incremental executado com sucesso!")
     print(f"  Apenas ano(s) {new_years} processado(s)")
     return consolidated_df
 

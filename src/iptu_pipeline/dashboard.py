@@ -5,17 +5,16 @@ Creates interactive visualizations using Plotly.
 import pandas as pd
 from pathlib import Path
 from typing import Optional
-import json
 
 try:
     import plotly.graph_objects as go
     import plotly.express as px
-    from plotly.subplots import make_subplots
+    from plotly.subplots import make_subplots  # noqa: F401 - availability probe
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
 
-from iptu_pipeline.config import ANALYSIS_OUTPUT_PATH, GOLD_DIR
+from iptu_pipeline.config import GOLD_DIR
 from iptu_pipeline.utils.logger import setup_logger
 from iptu_pipeline.pipelines.analysis import IPTUAnalyzer
 

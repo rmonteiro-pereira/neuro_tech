@@ -2,12 +2,12 @@
 Data quality validation module for IPTU pipeline.
 """
 import pandas as pd
-import numpy as np
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from pathlib import Path
 from datetime import datetime
 
 from iptu_pipeline.config import QUALITY_THRESHOLDS
+from iptu_pipeline.engine import get_engine
 from iptu_pipeline.utils.logger import setup_logger
 
 logger = setup_logger("data_quality")

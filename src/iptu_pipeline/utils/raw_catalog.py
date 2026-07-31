@@ -5,7 +5,7 @@ Tracks extended metadata including checksums, schema snapshots, and processing s
 import hashlib
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from datetime import datetime
 
 try:
@@ -13,7 +13,7 @@ try:
 except ImportError:
     pd = None
 
-from iptu_pipeline.config import settings, CATALOG_DIR, RAW_DIR, CSV_YEARS, JSON_YEARS, DATA_PATHS
+from iptu_pipeline.config import CATALOG_DIR, RAW_DIR, CSV_YEARS, JSON_YEARS, DATA_PATHS
 from iptu_pipeline.utils.logger import setup_logger
 
 logger = setup_logger("raw_catalog")
@@ -208,9 +208,6 @@ class RawDataCatalog:
             # Calculate checksum
             md5_checksum = self._calculate_md5(file_path)
             
-            # Extract year if not already known
-            extracted_year = self._extract_year_from_path(file_path) or year
-            
             # Get schema snapshot
             schema_snapshot = self._get_schema_snapshot(file_path, year)
             
@@ -376,8 +373,6 @@ class RawDataCatalog:
                 # Apply spark.sql.debug.maxToStringFields config to prevent truncation warnings
                 self.engine.spark.conf.set("spark.sql.debug.maxToStringFields", "200")
                 
-                from pyspark.sql.types import StructType, StructField, StringType, LongType, IntegerType, TimestampType
-                from pyspark.sql.functions import to_timestamp, lit
                 
                 # Convert catalog list to DataFrame, handling None values
                 # Create a clean list with proper types

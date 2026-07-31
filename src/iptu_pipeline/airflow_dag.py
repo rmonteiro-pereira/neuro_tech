@@ -89,7 +89,6 @@ def generate_visualizations(**context):
     logger.info("Generating visualizations from gold layer analyses")
     
     from iptu_pipeline.visualizations import generate_plots_from_analysis_results
-    from iptu_pipeline.config import settings
     
     plot_files = generate_plots_from_analysis_results(analysis_path=settings.analysis_output_path)
     
@@ -104,7 +103,6 @@ def generate_dashboard(**context):
     logger.info("Generating dashboard from gold layer")
     
     from iptu_pipeline.dashboard import IPTUDashboard
-    from iptu_pipeline.config import settings
     from iptu_pipeline.engine import get_engine
     import pandas as pd
     
@@ -125,7 +123,7 @@ def generate_dashboard(**context):
         raise
     
     dashboard = IPTUDashboard(df=df)
-    dashboard_path = dashboard.generate_dashboard()
+    dashboard_path = dashboard.generate_dashboard_html()
     report_path = dashboard.generate_summary_report()
     
     logger.info(f"Dashboard generated: {dashboard_path}")
@@ -137,22 +135,17 @@ def generate_validation_reports(**context):
     """Task to generate validation reports from medallion quality checks."""
     logger.info("Generating medallion validation reports")
     
-    from iptu_pipeline.config import settings
     
     # Check for medallion validation report
     from iptu_pipeline.config import CATALOG_DIR
     medallion_report_path = CATALOG_DIR / "medallion_validation_report.json"
     
     reports = []
-    
+
     if medallion_report_path.exists():
         reports.append(str(medallion_report_path))
         logger.info(f"Medallion validation report: {medallion_report_path}")
-    
-    if legacy_report_path.exists():
-        reports.append(str(legacy_report_path))
-        logger.info(f"Legacy validation report: {legacy_report_path}")
-    
+
     return reports if reports else None
 
 

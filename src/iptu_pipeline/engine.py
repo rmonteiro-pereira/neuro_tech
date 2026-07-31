@@ -4,15 +4,11 @@ Allows switching between Pandas and PySpark without changing pipeline code.
 """
 from typing import Literal, Optional, Union
 from pathlib import Path
-import warnings
-import os
-warnings.filterwarnings('ignore')
 
 # Try to import PySpark
 try:
     from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
     from pyspark.sql import functions as F
-    from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
     PYSPARK_AVAILABLE = True
 except ImportError:
     PYSPARK_AVAILABLE = False
@@ -22,7 +18,6 @@ except ImportError:
 
 # Pandas is always available
 import pandas as pd
-import numpy as np
 
 from iptu_pipeline.config import settings
 from iptu_pipeline.utils.logger import setup_logger
@@ -171,7 +166,7 @@ class DataEngine:
             # We'll use a version that matches delta-spark>=3.3.2 from requirements
             try:
                 # Try to import delta to check if it's available
-                import delta
+                import delta  # noqa: F401 - availability probe
                 # Manually construct Delta package (matches what configure_spark_with_delta_pip would set)
                 # Using Spark 2.12 scala version (standard for Spark 3.x)
                 delta_packages = "io.delta:delta-spark_2.12:3.3.2"
@@ -579,8 +574,8 @@ class DataEngine:
             if result_rows != total_rows:
                 ratio = result_rows / total_rows if total_rows > 0 else 0
                 logger.error(f"⚠️  Row count mismatch after concat: expected {total_rows:,}, got {result_rows:,} ({ratio:.2f}x)")
-                logger.error(f"   This suggests duplication during concatenation!")
-                logger.error(f"   Check for duplicate columns or alignment issues")
+                logger.error("   This suggests duplication during concatenation!")
+                logger.error("   Check for duplicate columns or alignment issues")
             
             # Verify no duplicate columns in result
             if result.columns.duplicated().any():
