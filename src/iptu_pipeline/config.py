@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     
     model_config = SettingsConfigDict(
         env_prefix='IPTU_',
+        env_file='.env',
+        env_file_encoding='utf-8',
         case_sensitive=False,
         extra='ignore'
     )
@@ -152,7 +154,6 @@ class Settings(BaseSettings):
         
         NOTE: Data files are stored in RAW_DIR (data/raw/) as per medallion architecture.
         Structure: data/raw/iptu_2020/iptu_2020.csv, data/raw/iptu_2021/iptu_2021.csv, etc.
-        Example: C:\\Users\\Rodrigo\\Documents\\Entrevistas\\neuro_tech\\data\\raw\\iptu_2020\\iptu_2020.csv
         """
         paths = {}
         for year in self.CSV_YEARS:

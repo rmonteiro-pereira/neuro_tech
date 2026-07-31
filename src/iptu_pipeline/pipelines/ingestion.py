@@ -4,8 +4,7 @@ Handles incremental ingestion of new year data without reprocessing all years.
 Supports both Pandas and PySpark engines.
 """
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
-from datetime import datetime
+from typing import Dict, List, Optional, Set
 
 try:
     import pandas as pd
@@ -175,9 +174,11 @@ class DataIngestion:
         Returns:
             Dictionary mapping year to DataFrame for newly loaded years
         """
-        # Legacy consolidated path no longer used - data is stored in silver layer
-        # existing_data_path = existing_data_path or CONSOLIDATED_DATA_PATH
-        
+        # Default to the silver layer consolidated dataset
+        if existing_data_path is None:
+            from iptu_pipeline.config import SILVER_DIR
+            existing_data_path = SILVER_DIR / "iptu_silver_consolidated" / "data.parquet"
+
         # Check which years already exist
         existing_years = set()
         if existing_data_path.exists():

@@ -5,20 +5,20 @@ Reads from the Silver layer (consolidated, transformed data) and exports
 to a single Parquet file for sharing.
 
 Usage:
-    python export_refined_dataset.py [--output OUTPUT_FILE] [--engine pandas|pyspark]
+    python scripts/export_refined_dataset.py [--output OUTPUT_FILE] [--engine pandas|pyspark]
 
 Example:
-    python export_refined_dataset.py --output iptu_refined.parquet --engine pyspark
+    python scripts/export_refined_dataset.py --output iptu_refined.parquet --engine pyspark
 """
 import sys
 import argparse
 from pathlib import Path
 from typing import Optional
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add src to path for imports (script lives in scripts/, src/ is a sibling)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from iptu_pipeline.config import settings, SILVER_DIR
+from iptu_pipeline.config import SILVER_DIR
 from iptu_pipeline.engine import get_engine
 from iptu_pipeline.utils.logger import setup_logger
 
@@ -41,9 +41,9 @@ def export_refined_dataset(
     Returns:
         Path to the exported file
     """
-    # Determine output path
+    # Determine output path (defaults to the project root)
     if output_path is None:
-        output_path = Path(__file__).parent / "iptu_refined.parquet"
+        output_path = Path(__file__).parent.parent / "iptu_refined.parquet"
     else:
         output_path = Path(output_path)
     

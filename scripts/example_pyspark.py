@@ -4,8 +4,8 @@ Example of using PySpark engine with IPTU pipeline.
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add src to path (script lives in scripts/, src/ is a sibling)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from iptu_pipeline.pipelines.main_pipeline import IPTUPipeline
 from iptu_pipeline.utils.logger import setup_logger
@@ -21,7 +21,7 @@ def main():
     
     # Check if PySpark is available
     try:
-        from pyspark.sql import SparkSession
+        from pyspark.sql import SparkSession  # noqa: F401 - availability probe
         logger.info("✓ PySpark is available")
     except ImportError:
         logger.error("✗ PySpark not installed. Install with: pip install pyspark")
