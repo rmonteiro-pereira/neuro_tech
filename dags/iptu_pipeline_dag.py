@@ -100,7 +100,6 @@ def generate_visualizations(**context):
     logger.info("Generating visualizations from gold layer analyses")
     
     from iptu_pipeline.visualizations import generate_plots_from_analysis_results
-    from iptu_pipeline.config import settings
     
     plot_files = generate_plots_from_analysis_results(analysis_path=settings.analysis_output_path)
     
@@ -115,7 +114,6 @@ def generate_dashboard(**context):
     logger.info("Generating dashboard from gold layer")
     
     from iptu_pipeline.dashboard import IPTUDashboard
-    from iptu_pipeline.config import settings
     from iptu_pipeline.engine import get_engine
     import pandas as pd
     
@@ -135,7 +133,7 @@ def generate_dashboard(**context):
         raise
     
     dashboard = IPTUDashboard(df=df)
-    dashboard_path = dashboard.generate_dashboard()
+    dashboard_path = dashboard.generate_dashboard_html()
     report_path = dashboard.generate_summary_report()
     
     logger.info(f"Dashboard generated: {dashboard_path}")
@@ -147,22 +145,17 @@ def generate_validation_reports(**context):
     """Task to generate validation reports from medallion quality checks."""
     logger.info("Generating medallion validation reports")
     
-    from iptu_pipeline.config import settings
     
     # Check for medallion validation report
     from iptu_pipeline.config import CATALOG_DIR
     medallion_report_path = CATALOG_DIR / "medallion_validation_report.json"
     
     reports = []
-    
+
     if medallion_report_path.exists():
         reports.append(str(medallion_report_path))
         logger.info(f"Medallion validation report: {medallion_report_path}")
-    
-    if legacy_report_path.exists():
-        reports.append(str(legacy_report_path))
-        logger.info(f"Legacy validation report: {legacy_report_path}")
-    
+
     return reports if reports else None
 
 
@@ -177,8 +170,7 @@ def validate_pipeline_success(**context):
     logger.info("Validating Pipeline Success")
     logger.info("="*80)
     
-    from iptu_pipeline.config import settings
-    from iptu_pipeline.config import BRONZE_DIR, SILVER_DIR, GOLD_DIR, CATALOG_DIR
+    from iptu_pipeline.config import BRONZE_DIR, SILVER_DIR, CATALOG_DIR
     
     validation_results = {
         'catalog_updated': False,
@@ -204,7 +196,8 @@ def validate_pipeline_success(**context):
                 max_age = timedelta(minutes=1)
                 catalog_age = None
                 
-                for year, entry in catalog_data.items():
+                # The catalog JSON is saved as a list of entries (one per year)
+                for entry in catalog_data:
                     if isinstance(entry, dict) and 'last_updated' in entry:
                         try:
                             updated_str = entry['last_updated']
@@ -221,15 +214,14 @@ def validate_pipeline_success(**context):
                             if catalog_age is None or age > catalog_age:
                                 catalog_age = age
                         except Exception as e:
-                            logger.debug(f"Could not parse timestamp for {year}: {e}")
-                            pass
+                            logger.debug(f"Could not parse timestamp for {entry.get('year', '?')}: {e}")
                 
                 if catalog_age and catalog_age < max_age:
                     validation_results['catalog_updated'] = True
                     logger.info(f"✓ Catalog updated recently (age: {catalog_age})")
                 else:
                     validation_results['errors'].append(f"Catalog not updated recently (age: {catalog_age})")
-                    logger.warning(f"⚠ Catalog exists but may not be recent")
+                    logger.warning("⚠ Catalog exists but may not be recent")
             else:
                 validation_results['errors'].append("Catalog is empty")
                 logger.error("✗ Catalog is empty")
@@ -295,7 +287,7 @@ def validate_pipeline_success(**context):
         logger.info(f"✓ Medallion validation report exists: {medallion_report}")
     else:
         validation_results['errors'].append("Validation reports missing")
-        logger.error(f"✗ Validation reports missing")
+        logger.error("✗ Validation reports missing")
     
     # Summary
     logger.info("\n" + "="*80)

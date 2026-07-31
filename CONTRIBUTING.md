@@ -39,22 +39,26 @@ library. Regenerate them with `python main.py`; they are gitignored.
 Do not commit anything under `data/raw/`, `data/bronze/`, `data/silver/` or `data/catalog/`,
 and nothing over 5 MB.
 
-## Tests
+## Tests and lint
 
-**There is currently no test suite.** `pytest` is already declared in `requirements.txt`, but
-no test files exist, so `pytest -q` collects nothing today. This is the largest known gap in
-the repository.
-
-If you are adding behaviour, please add the first tests alongside it:
+The test suite lives in `tests/` and runs against the **Pandas** engine on synthetic data —
+no Spark, Java, or raw data files required:
 
 ```bash
-mkdir -p tests
-pytest -q
+uv sync            # or: pip install -e . --group dev
+uv run pytest      # 98 tests
+uv run ruff check src scripts dags tests main.py
 ```
 
-For a pipeline, the cases worth covering are the failure paths rather than the happy one —
-malformed rows, missing or renamed columns, partial writes, and the PyDeequ validation
-actually rejecting bad input rather than passing it through.
+Both commands are enforced by CI (`.github/workflows/ci.yml`) and must be green before a PR
+is merged. The Spark/Delta/PyDeequ path is **not** covered by CI (it needs a JVM Spark
+session with Maven JAR downloads); if you change that path, run it locally via the
+Docker route in the README and say so in the PR.
+
+If you are adding behaviour, add tests alongside it. For a pipeline, the cases worth
+covering are the failure paths rather than the happy one — malformed rows, missing or
+renamed columns, partial writes, and validation actually rejecting bad input rather than
+passing it through.
 
 ## Pull requests
 

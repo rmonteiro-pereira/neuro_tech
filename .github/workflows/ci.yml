@@ -1,0 +1,38 @@
+# CI for the IPTU pipeline.
+#
+# Scope (stated explicitly rather than faked):
+#   - Lints all Python (ruff: pyflakes + pycodestyle errors).
+#   - Runs the pytest suite, which exercises the *Pandas* engine end to end
+#     (raw -> bronze -> silver -> gold) on synthetic data, plus the config,
+#     ingestion, transformation, quality-validation, catalog and analysis units.
+#   - Does NOT run the Spark/Delta/PyDeequ path or execute Airflow DAGs: those
+#     need a JVM Spark session with Maven JAR downloads, which is slow and flaky
+#     on hosted runners. PySpark is installed (it is a locked dependency of
+#     delta-spark) so imports are covered, but no Spark session is created.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (locked)
+        run: uv sync --locked
+
+      - name: Lint (ruff)
+        run: uv run --locked ruff check src scripts dags tests main.py
+
+      - name: Test (pytest, Pandas engine)
+        run: uv run --locked pytest tests -v
