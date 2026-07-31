@@ -3,12 +3,16 @@ data/raw/
 data/bronze/
 data/silver/
 data/catalog/
-# Ignore everything in gold except plots directory
+# Ignore everything in gold except the plot images
 data/gold/*
-# Exception: Include plot images and HTML visualizations
+# Exception: the PNG stills are versioned so the README renders without a pipeline run.
 !data/gold/plots/
 !data/gold/plots/*.png
-!data/gold/plots/*.html
+# The interactive Plotly HTML is NOT versioned: each file embeds the whole Plotly
+# library (~4.6 MB each, 74 MB for the combined report), which totalled over 148 MB
+# of generated artefact — more than 99% of the repository. Regenerate with
+# `python main.py`.
+data/gold/plots/*.html
 .venv/
 logs/
 outputs/
