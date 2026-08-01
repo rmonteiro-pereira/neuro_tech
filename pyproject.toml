@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
 [project]
 name = "neuro-tech"
 version = "0.1.0"
@@ -26,6 +30,12 @@ pyspark = [
     "delta-spark>=3.0.0",
     "pydeequ>=1.5.0",
 ]
+
+# The distribution is `neuro-tech` but the import package is `iptu_pipeline`
+# under src/, so the wheel target has to be declared explicitly - hatchling
+# cannot infer it from the project name.
+[tool.hatch.build.targets.wheel]
+packages = ["src/iptu_pipeline"]
 
 [dependency-groups]
 dev = [
