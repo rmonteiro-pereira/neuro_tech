@@ -4,7 +4,12 @@ Main entry point for IPTU Data Pipeline.
 import sys
 from pathlib import Path
 
-# Add src to path
+# Fallback for the *uninstalled* checkout: the Docker/Airflow image mounts
+# ./src instead of installing the distribution (see docker-compose.yml), and
+# `python main.py` should work straight out of a fresh clone. Everywhere else
+# the package is installed (`uv sync` / `pip install -e .`) and this is a
+# no-op. Note that the test suite deliberately does NOT do this - see
+# tests/conftest.py - so a broken package build still fails CI.
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from iptu_pipeline.orchestration import run_orchestrated_pipeline

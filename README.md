@@ -14,6 +14,8 @@
 
 - [Overview](#overview)
   - [Principais Descobertas](#principais-descobertas)
+- [Data Source](#data-source)
+  - [Populating `data/raw/`](#populating-dataraw)
 - [Key Features](#key-features)
   - [Core Capabilities](#core-capabilities)
   - [Data Quality Framework](#data-quality-framework)
@@ -29,7 +31,7 @@
 - [Quick Start](#quick-start)
   - [Run Full Pipeline (Pandas)](#run-full-pipeline-pandas)
   - [Run Full Pipeline (PySpark)](#run-full-pipeline-pyspark)
-  - [Run with Docker (Spark Standalone)](#run-with-docker-spark-standalone)
+  - [Run with Docker (Spark cluster + Airflow)](#run-with-docker-spark-cluster--airflow)
 - [Usage Guide](#usage-guide)
   - [Basic Usage](#basic-usage)
   - [Advanced Usage](#advanced-usage)
@@ -83,6 +85,45 @@ O pipeline processou e analisou **1.637.779 imóveis** do IPTU de Recife:
 - **Evolução**: Análise detalhada da evolução de bairros em quantidade e valor
 
 Todas as análises estão disponíveis em `data/gold/analyses/` e visualizações em `data/gold/plots/`.
+
+---
+
+## Data Source
+
+**This repository does not ship the source data.** `data/raw/` is gitignored and is
+empty in a fresh clone, so `python main.py` stops with
+`RuntimeError: No data found in bronze layer to consolidate` until you populate it.
+Only the derived PNG plots are versioned here — the IPTU dataset itself is not
+redistributed by this repository.
+
+| | |
+|---|---|
+| **Dataset** | [Imposto Predial e Territorial Urbano (IPTU)](https://dados.recife.pe.gov.br/dataset/imposto-predial-e-territorial-urbano-iptu) |
+| **Publisher** | Secretaria de Finanças, Prefeitura do Recife — [Portal de Dados Abertos](https://dados.recife.pe.gov.br/) |
+| **License** | Open Data Commons Open Database License (ODbL), as declared on the dataset page |
+| **Years used here** | 2020–2024 (the portal publishes one resource per year from 2005 onward) |
+
+### Populating `data/raw/`
+
+Download one resource per year from the dataset page above and save the files under
+these names — the loader accepts either the flat or the per-year-subdirectory layout:
+
+```text
+data/raw/iptu_2020.csv         or  data/raw/iptu_2020/iptu_2020.csv
+data/raw/iptu_2021.csv         or  data/raw/iptu_2021/iptu_2021.csv
+data/raw/iptu_2022.csv         or  data/raw/iptu_2022/iptu_2022.csv
+data/raw/iptu_2023.csv         or  data/raw/iptu_2023/iptu_2023.csv
+data/raw/iptu_2024_json.json   or  data/raw/iptu_2024_json/iptu_2024_json.json
+```
+
+The 2020–2023 files are the portal's semicolon-delimited CSVs. The 2024 file is the
+CKAN datastore JSON payload — an object with `fields` (column descriptors) and
+`records` (row arrays); `IPTUEngine.read_json` unwraps that shape, and falls back to
+`pandas.read_json` for anything else (`src/iptu_pipeline/engine.py:374-378`).
+
+Which years come from which format is configuration, not code: override
+`IPTU_CSV_YEARS` and `IPTU_JSON_YEARS` (see [Environment Variables](#environment-variables))
+to process a different range.
 
 ---
 
@@ -160,7 +201,7 @@ The pipeline follows a **medallion architecture** with four data layers:
 │  • Age-value relationship analysis                              │
 │  • Neighborhood evolution analysis                              │
 │  • Analysis results (CSV)                                       │
-│  • Visualizations (PNG, HTML) - 8 plots + HTML report           │
+│  • Visualizations (PNG, HTML) - 12 plots + HTML report          │
 │  • Dashboard reports                                            │
 │  • Year-over-year trends                                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -337,6 +378,10 @@ Expected output: `Engine: pandas`
 ---
 
 ## Quick Start
+
+> **Prerequisite**: populate `data/raw/` first — see [Data Source](#data-source). A fresh
+> clone has no source data, and every command below will stop with
+> `RuntimeError: No data found in bronze layer to consolidate` without it.
 
 ### Run Full Pipeline (Pandas)
 
@@ -727,23 +772,23 @@ O pipeline realiza análises abrangentes que respondem às perguntas principais 
 
 **Distribuição por Tipo de Uso:**
 - Análise completa disponível em: `data/gold/analyses/volume_analysis/volume_by_type.csv`
-- Visualização interativa: [`data/gold/plots/volume_by_type.png`](data/gold/plots/volume_by_type.png)
+- Visualização (PNG versionado): [`data/gold/plots/volume_by_type.png`](data/gold/plots/volume_by_type.png)
 
 **Distribuição por Bairro:**
 - Top 20 bairros com mais imóveis: `data/gold/analyses/volume_analysis/volume_by_neighborhood.csv`
-- Visualização interativa: [`data/gold/plots/top_neighborhoods.png`](data/gold/plots/top_neighborhoods.png)
+- Visualização (PNG versionado): [`data/gold/plots/top_neighborhoods.png`](data/gold/plots/top_neighborhoods.png)
 
 **Distribuição Temporal:**
 - Volume por ano (2020-2024): `data/gold/analyses/volume_analysis/volume_by_year.csv`
-- Visualização interativa: [`data/gold/plots/volume_by_year.png`](data/gold/plots/volume_by_year.png)
+- Visualização (PNG versionado): [`data/gold/plots/volume_by_year.png`](data/gold/plots/volume_by_year.png)
 
 **Distribuição Combinada (Ano × Tipo):**
 - Análise cruzada ano/tipo: `data/gold/analyses/volume_analysis/volume_by_year_type.csv`
-- Visualização interativa: [`data/gold/plots/volume_by_year_type.png`](data/gold/plots/volume_by_year_type.png)
+- Visualização (PNG versionado): [`data/gold/plots/volume_by_year_type.png`](data/gold/plots/volume_by_year_type.png)
 
 **Distribuição por Tipo de Construção:**
 - Análise: `data/gold/analyses/distribution_analysis/distribution_by_construction.csv`
-- Visualização interativa: [`data/gold/plots/distribution_by_construction.png`](data/gold/plots/distribution_by_construction.png)
+- Visualização (PNG versionado): [`data/gold/plots/distribution_by_construction.png`](data/gold/plots/distribution_by_construction.png)
 
 ---
 
@@ -782,7 +827,7 @@ A maioria dos imóveis tem entre 21-50 anos de construção, indicando um invent
 
 **Análise Completa:**
 - Top 20 bairros por valor médio: `data/gold/analyses/tax_value_analysis/avg_tax_by_neighborhood_top20.csv`
-- Visualização interativa: [`data/gold/plots/top_tax_neighborhoods.png`](data/gold/plots/top_tax_neighborhoods.png)
+- Visualização (PNG versionado): [`data/gold/plots/top_tax_neighborhoods.png`](data/gold/plots/top_tax_neighborhoods.png)
 - Tendências de valor (Boxplot): [`data/gold/plots/tax_trends.png`](data/gold/plots/tax_trends.png)
 
 **Relação Idade × Valor:**
@@ -799,7 +844,7 @@ A análise mostra uma **relação inversa interessante**:
 
 **Análise Completa:**
 - Relação idade-valor: `data/gold/analyses/age_value_analysis/age_value_relationship.csv`
-- Visualização interativa: [`data/gold/plots/age_value_relationship.png`](data/gold/plots/age_value_relationship.png)
+- Visualização (PNG versionado): [`data/gold/plots/age_value_relationship.png`](data/gold/plots/age_value_relationship.png)
 
 ---
 
@@ -812,16 +857,16 @@ A análise comparativa entre o primeiro e último ano mostra que muitos bairros 
 **Top Crescimentos:**
 - Análise completa: `data/gold/analyses/evolution_analysis/top_growth_quantity.csv`
 - Análise por bairro: `data/gold/analyses/evolution_analysis/neighborhood_evolution.csv`
-- Visualização interativa: [`data/gold/plots/neighborhood_growth_quantity.png`](data/gold/plots/neighborhood_growth_quantity.png)
+- Visualização (PNG versionado): [`data/gold/plots/neighborhood_growth_quantity.png`](data/gold/plots/neighborhood_growth_quantity.png)
 
 **Bairros com Maior Crescimento em Valor:**
 - Análise completa: `data/gold/analyses/evolution_analysis/top_growth_value.csv`
-- Visualização interativa: [`data/gold/plots/neighborhood_growth_value.png`](data/gold/plots/neighborhood_growth_value.png)
+- Visualização (PNG versionado): [`data/gold/plots/neighborhood_growth_value.png`](data/gold/plots/neighborhood_growth_value.png)
 
 **Tendências Anuais:**
 - Estatísticas por ano: `data/gold/analyses/tax_value_analysis/tax_stats_by_year.csv`
 - Valores de propriedade: `data/gold/analyses/tax_value_analysis/property_value_by_year.csv`
-- Visualização interativa: [`data/gold/plots/tax_trends.png`](data/gold/plots/tax_trends.png)
+- Visualização (PNG versionado): [`data/gold/plots/tax_trends.png`](data/gold/plots/tax_trends.png)
 
 **Observação:** A evolução precisa ser analisada considerando que mudanças administrativas, consolidações de registros e melhorias na qualidade dos dados podem afetar as comparações ano a ano.
 
@@ -829,7 +874,7 @@ A análise comparativa entre o primeiro e último ano mostra que muitos bairros 
 
 ### Todas as Visualizações Disponíveis
 
-Todas as visualizações são geradas automaticamente em formato HTML interativo e PNG (alta qualidade, 2x scale) e salvas em `data/gold/plots/`:
+Todas as visualizações são geradas automaticamente em dois formatos — HTML interativo e PNG (alta qualidade, 2x scale) — e salvas em `data/gold/plots/`. **Apenas os PNGs são versionados**; os links desta seção apontam para eles.
 
 #### 1. Análise de Volume
 
@@ -892,7 +937,10 @@ Todas as visualizações são geradas automaticamente em formato HTML interativo
 **Relatório HTML Interativo** - Todas as visualizações e análises em um único documento
 - Relatório combinado: `visualizations_report.html` — gerado localmente ao executar o pipeline (não versionado; ver Nota sobre artefatos gerados).
 
-> **Dica**: Clique em qualquer imagem acima para abrir a versão HTML interativa no navegador. Use zoom, hover e filtros para explorar os dados!
+> **Dica**: os links acima abrem os **PNG** versionados — são eles que estão neste
+> repositório. Para a versão interativa (zoom, hover, filtros), rode `python main.py` e
+> abra o `.html` de mesmo nome em `data/gold/plots/`; ver
+> [Nota sobre artefatos gerados](#nota-sobre-artefatos-gerados).
 
 ---
 
@@ -986,7 +1034,10 @@ analyses/
 
 ### Visualizations
 
-`data/gold/plots/` contém 12 visualizações interativas em formato HTML (Plotly) + relatório HTML:
+`data/gold/plots/` contém **12 PNGs versionados**. Os HTML interativos (Plotly) e o
+relatório combinado são gerados por `python main.py` e **não são versionados** — ver
+[Nota sobre artefatos gerados](#nota-sobre-artefatos-gerados). Os links abaixo apontam
+para os PNGs que estão no repositório:
 
 #### Análise de Volume (6 visualizações)
 1. [`volume_by_year.png`](data/gold/plots/volume_by_year.png) - Volume de imóveis por ano
@@ -1011,7 +1062,9 @@ analyses/
 #### Relatório HTML
 13. `visualizations_report.html` - Relatório HTML interativo com todas as visualizações e tabelas detalhadas. Gerado localmente ao executar o pipeline; não versionado.
 
-> **Nota**: Todas as visualizações são geradas em formato HTML interativo usando Plotly. Abra os arquivos no navegador para explorar os dados com zoom, hover e filtros interativos.
+> **Nota**: cada visualização é gerada em dois formatos pelo Plotly — um PNG estático e um
+> HTML interativo. Só os PNGs são versionados; rode `python main.py` para produzir os HTML
+> e abri-los no navegador com zoom, hover e filtros.
 
 
 ### Catalog

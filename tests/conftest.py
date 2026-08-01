@@ -5,10 +5,14 @@ IMPORTANT: iptu_pipeline.config instantiates Settings() at import time and
 creates its data directories as a side effect. To keep tests hermetic, all
 IPTU_* directory settings are pointed at a session-scoped temporary directory
 *before* anything under iptu_pipeline is imported.
+
+NOTE: the suite deliberately does NOT put src/ on sys.path. It imports
+iptu_pipeline the way a user does, from the installed distribution, so that a
+broken package build (a missing [build-system], a wheel target that does not
+ship the package) fails CI instead of being papered over by a path hack.
 """
 import json
 import os
-import sys
 import tempfile
 from pathlib import Path
 
@@ -28,11 +32,6 @@ os.environ["IPTU_CATALOG_DIR"] = str(_SESSION_TMP / "data" / "catalog")
 os.environ["IPTU_DATA_ENGINE"] = "pandas"
 # Small threshold so tiny synthetic datasets pass row-count validation.
 os.environ["IPTU_MIN_ROWS_PER_YEAR"] = "5"
-
-# Make the package importable without installation (mirrors main.py).
-_SRC = Path(__file__).parent.parent / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
 
 import pandas as pd  # noqa: E402
 import pytest  # noqa: E402

@@ -1,4 +1,4 @@
-(neuro-tech) PS C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech> .venv\Scripts\Activate.ps1;$env:IPTU_DATA_ENGINE='pyspark';python main.py
+(neuro-tech) PS C:\work\neuro_tech> .venv\Scripts\Activate.ps1;$env:IPTU_DATA_ENGINE='pyspark';python main.py
 INFO - Starting IPTU Data Pipeline
 INFO - Running pipeline (direct execution mode)
 INFO - For Airflow orchestration, deploy the DAG from airflow_dag.py
@@ -7,9 +7,9 @@ INFO - Delta Lake + PyDeequ configured: JARs loaded + extensions set (manual pac
 INFO - Creating Spark session...
 https://repo1.maven.org/maven2 added as a remote repository with the name: repo-1
 https://repos.spark-packages.org added as a remote repository with the name: repo-2
-:: loading settings :: url = jar:file:/C:/Users/Rodrigo/.spark/spark-3.5.5-bin-hadoop3/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
-Ivy Default Cache set to: C:\Users\Rodrigo\AppData\Local\Temp\.ivy2\cache
-The jars for the packages stored in: C:\Users\Rodrigo\AppData\Local\Temp\.ivy2\jars
+:: loading settings :: url = jar:file:/C:/work/.spark/spark-3.5.5-bin-hadoop3/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: C:\work\tmp\.ivy2\cache
+The jars for the packages stored in: C:\work\tmp\.ivy2\jars
 io.delta#delta-spark_2.12 added as a dependency
 com.amazon.deequ#deequ added as a dependency
 :: resolving dependencies :: org.apache.spark#spark-submit-parent-f8ddd42e-8948-47e3-89d5-6b15a8b83c12;1.0
@@ -83,28 +83,28 @@ INFO - PyDeequ data quality enabled for medallion architecture
 INFO - ================================================================================
 INFO - Starting IPTU Data Pipeline (Medallion Architecture)
 INFO - ================================================================================
-INFO - Raw layer (source files): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw
-INFO - Bronze layer (cleaned): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze
-INFO - Silver layer (consolidated): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\silver
-INFO - Gold layer (refined/analysis/plots): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold
-INFO - Data catalog (metadata): C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog
+INFO - Raw layer (source files): C:\work\neuro_tech\data\raw
+INFO - Bronze layer (cleaned): C:\work\neuro_tech\data\bronze
+INFO - Silver layer (consolidated): C:\work\neuro_tech\data\silver
+INFO - Gold layer (refined/analysis/plots): C:\work\neuro_tech\data\gold
+INFO - Data catalog (metadata): C:\work\neuro_tech\data\catalog
 INFO -
 ================================================================================
 INFO - [RAW LAYER] Cataloging Source Data Files
 INFO - ================================================================================
 INFO - Loaded existing catalog with 5 entries
 INFO - Scanning raw data files...
-INFO - Discovered file for year 2020: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2020\iptu_2020.csv
-INFO - Discovered file for year 2021: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2021\iptu_2021.csv
-INFO - Discovered file for year 2022: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2022\iptu_2022.csv
-INFO - Discovered file for year 2023: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2023\iptu_2023.csv
-INFO - Discovered file for year 2024: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json
-WARNING - Could not get schema snapshot for C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json: All arrays must be of the same length
+INFO - Discovered file for year 2020: C:\work\neuro_tech\data\raw\iptu_2020\iptu_2020.csv
+INFO - Discovered file for year 2021: C:\work\neuro_tech\data\raw\iptu_2021\iptu_2021.csv
+INFO - Discovered file for year 2022: C:\work\neuro_tech\data\raw\iptu_2022\iptu_2022.csv
+INFO - Discovered file for year 2023: C:\work\neuro_tech\data\raw\iptu_2023\iptu_2023.csv
+INFO - Discovered file for year 2024: C:\work\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json
+WARNING - Could not get schema snapshot for C:\work\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json: All arrays must be of the same length
 INFO - Scan complete: 5 files cataloged
 INFO - Catalog summary: {'total_files': 5, 'by_status': {'completed': 5}, 'by_file_type': {'csv': 4, 'json': 1}, 'total_size_bytes': 1217749408, 'total_size_gb': 1.13}
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
 INFO - [OK] Raw files cataloged: 5 files
 INFO -
 ================================================================================
@@ -114,9 +114,9 @@ INFO -
 Processing year 2020 to bronze layer
 INFO - Marked year 2020 as processing
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Loading CSV file for year 2020: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2020\iptu_2020.csv (engine: pyspark)
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2020: C:\work\neuro_tech\data\raw\iptu_2020\iptu_2020.csv (engine: pyspark)
 INFO - [OK] Loaded 2020: 403,915 rows, 32 columns
 INFO - Starting data quality validation for year 2020
 INFO - [PASS] Validation PASSED for year 2020
@@ -132,11 +132,11 @@ INFO - Cleaning and optimizing DataFrame
 INFO - Trimming whitespace from string columns
 INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
 INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
-INFO - [OK] Year 2020 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2020
+INFO - [OK] Year 2020 saved to bronze layer: C:\work\neuro_tech\data\bronze\iptu_2020
 INFO - Marked year 2020 as completed
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
 INFO - [PyDeequ] Starting data quality validation for year 2020 - Bronze Layer
 25/11/04 01:37:26 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
 Unable to map type DateType
@@ -146,9 +146,9 @@ INFO -
 Processing year 2021 to bronze layer
 INFO - Marked year 2021 as processing
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Loading CSV file for year 2021: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2021\iptu_2021.csv (engine: pyspark)
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2021: C:\work\neuro_tech\data\raw\iptu_2021\iptu_2021.csv (engine: pyspark)
 INFO - [OK] Loaded 2021: 407,245 rows, 32 columns
 INFO - Starting data quality validation for year 2021
 INFO - [PASS] Validation PASSED for year 2021
@@ -164,11 +164,11 @@ INFO - Cleaning and optimizing DataFrame
 INFO - Trimming whitespace from string columns
 INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
 INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
-INFO - [OK] Year 2021 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2021
+INFO - [OK] Year 2021 saved to bronze layer: C:\work\neuro_tech\data\bronze\iptu_2021
 INFO - Marked year 2021 as completed
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
 INFO - [PyDeequ] Starting data quality validation for year 2021 - Bronze Layer
 Unable to map type DateType
 INFO - [PyDeequ] Profiling completed successfully for year 2021 - Bronze Layer (Rows: 407,245, Columns: 36, Null%: 0.00%)
@@ -177,9 +177,9 @@ INFO -
 Processing year 2022 to bronze layer
 INFO - Marked year 2022 as processing
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Loading CSV file for year 2022: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2022\iptu_2022.csv (engine: pyspark)
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2022: C:\work\neuro_tech\data\raw\iptu_2022\iptu_2022.csv (engine: pyspark)
 INFO - [OK] Loaded 2022: 411,090 rows, 32 columns
 INFO - Starting data quality validation for year 2022
 INFO - [PASS] Validation PASSED for year 2022
@@ -195,11 +195,11 @@ INFO - Cleaning and optimizing DataFrame
 INFO - Trimming whitespace from string columns
 INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
 INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
-INFO - [OK] Year 2022 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2022
+INFO - [OK] Year 2022 saved to bronze layer: C:\work\neuro_tech\data\bronze\iptu_2022
 INFO - Marked year 2022 as completed
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
 INFO - [PyDeequ] Starting data quality validation for year 2022 - Bronze Layer
 Unable to map type DateType
 INFO - [PyDeequ] Profiling completed successfully for year 2022 - Bronze Layer (Rows: 411,090, Columns: 36, Null%: 0.00%)
@@ -208,9 +208,9 @@ INFO -
 Processing year 2023 to bronze layer
 INFO - Marked year 2023 as processing
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Loading CSV file for year 2023: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2023\iptu_2023.csv (engine: pyspark)
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading CSV file for year 2023: C:\work\neuro_tech\data\raw\iptu_2023\iptu_2023.csv (engine: pyspark)
 INFO - [OK] Loaded 2023: 415,029 rows, 32 columns
 INFO - Starting data quality validation for year 2023
 INFO - [PASS] Validation PASSED for year 2023
@@ -226,11 +226,11 @@ INFO - Cleaning and optimizing DataFrame
 INFO - Trimming whitespace from string columns
 INFO - Trimmed 24 string columns: ['Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro', 'complemento']...
 INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
-INFO - [OK] Year 2023 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2023
+INFO - [OK] Year 2023 saved to bronze layer: C:\work\neuro_tech\data\bronze\iptu_2023
 INFO - Marked year 2023 as completed
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
 INFO - [PyDeequ] Starting data quality validation for year 2023 - Bronze Layer
 Unable to map type DateType
 INFO - [PyDeequ] Profiling completed successfully for year 2023 - Bronze Layer (Rows: 415,029, Columns: 36, Null%: 0.00%)
@@ -239,9 +239,9 @@ INFO -
 Processing year 2024 to bronze layer
 INFO - Marked year 2024 as processing
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
-INFO - Loading JSON file for year 2024: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json (engine: pyspark)
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
+INFO - Loading JSON file for year 2024: C:\work\neuro_tech\data\raw\iptu_2024_json\iptu_2024_json.json (engine: pyspark)
 INFO - [OK] Loaded 2024: 500 rows, 33 columns
 INFO - Starting data quality validation for year 2024
 INFO - [PASS] Validation PASSED for year 2024
@@ -258,11 +258,11 @@ INFO - Cleaning and optimizing DataFrame
 INFO - Trimming whitespace from string columns
 INFO - Trimmed 25 string columns: ['_id', 'Número do contribuinte', 'tipo de contribuinte', 'CPF/CNPJ mascarado do contribuinte', 'logradouro']...
 INFO - Detected 11 low-cardinality string columns (categorical candidates): ['tipo de contribuinte', 'cidade', 'estado', 'valor do m2 do terreno', 'tipo de uso do imóvel', 'tipo de padrão da construção', 'Regime de Tributação do iptu', 'Regime de Tributação da trsd', 'Tipo de Construção', 'Tipo de Empreendimento', 'Tipo de Estrutura']
-INFO - [OK] Year 2024 saved to bronze layer: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\bronze\iptu_2024
+INFO - [OK] Year 2024 saved to bronze layer: C:\work\neuro_tech\data\bronze\iptu_2024
 INFO - Marked year 2024 as completed
 INFO - Saving catalog to disk...
-INFO - Saved JSON catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog.json
-INFO - Saved Delta catalog to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\data_catalog_delta
+INFO - Saved JSON catalog to C:\work\neuro_tech\data\catalog\data_catalog.json
+INFO - Saved Delta catalog to C:\work\neuro_tech\data\catalog\data_catalog_delta
 INFO - [PyDeequ] Starting data quality validation for year 2024 - Bronze Layer
 Unable to map type DateType
 INFO - [PyDeequ] Profiling completed successfully for year 2024 - Bronze Layer (Rows: 500, Columns: 37, Null%: 2.70%)
@@ -309,7 +309,7 @@ INFO - Number of DataFrames to concatenate: 5
 INFO -
 Consolidating 5 years into silver layer...
 INFO - Silver layer consolidated: 1,637,779 rows, 38 columns
-INFO - [OK] Silver layer saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\silver\iptu_silver_consolidated
+INFO - [OK] Silver layer saved to: C:\work\neuro_tech\data\silver\iptu_silver_consolidated
 INFO - [PyDeequ] Starting data quality validation - Silver Layer (Consolidated)
 INFO - Silver layer contains data from 5 year(s): [2020.0, 2021.0, 2022.0, 2023.0, 2024.0]
 INFO - [PASS] PyDeequ Data Quality Validation PASSED - Silver Layer (Consolidated) (Rows: 1,637,779, Columns: 38, Duplicate%: 0.02%, Errors: 0)
@@ -319,7 +319,7 @@ WARNING - Delta write failed: [DELTA_INVALID_CHARACTERS_IN_COLUMN_NAMES] Found i
 Invalid column names: Número do contribuinte.
 Please use other characters and try again.
 Alternatively, enable Column Mapping to keep using these characters., using Parquet only
-INFO - Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\iptu_consolidated.parquet
+INFO - Saved Parquet: C:\work\neuro_tech\data\gold\parquet\iptu_consolidated.parquet
 INFO - [OK] Consolidated data saved to gold layer (Delta and Parquet)
 INFO - 
 ================================================================================
@@ -330,21 +330,21 @@ WARNING - Delta write failed: [DELTA_INVALID_CHARACTERS_IN_COLUMN_NAMES] Found i
 Invalid column names: ano do exercício.
 Please use other characters and try again.
 Alternatively, enable Column Mapping to keep using these characters., using Parquet only
-INFO - Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\gold_summary_by_year_type.parquet
+INFO - Saved Parquet: C:\work\neuro_tech\data\gold\parquet\gold_summary_by_year_type.parquet
 INFO - [OK] Saved gold_summary_by_year_type to Delta and Parquet
 INFO - Creating gold output: Summary by Neighborhood
 WARNING - Delta write failed: [DELTA_INVALID_CHARACTERS_IN_COLUMN_NAMES] Found invalid character(s) among ' ,;{}()\n\t=' in the column names of your schema.
 Invalid column names: ano do exercício.
 Please use other characters and try again.
 Alternatively, enable Column Mapping to keep using these characters., using Parquet only
-INFO - Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\gold_summary_by_neighborhood.parquet
+INFO - Saved Parquet: C:\work\neuro_tech\data\gold\parquet\gold_summary_by_neighborhood.parquet
 INFO - [OK] Saved gold_summary_by_neighborhood to Delta and Parquet
 INFO - Creating gold output: Year-over-Year Trends
 WARNING - Delta write failed: [DELTA_INVALID_CHARACTERS_IN_COLUMN_NAMES] Found invalid character(s) among ' ,;{}()\n\t=' in the column names of your schema.
 Invalid column names: ano do exercício.
 Please use other characters and try again.
 Alternatively, enable Column Mapping to keep using these characters., using Parquet only
-INFO - Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\gold_year_over_year_trends.parquet
+INFO - Saved Parquet: C:\work\neuro_tech\data\gold\parquet\gold_year_over_year_trends.parquet
 INFO - [OK] Saved gold_year_over_year_trends to Delta and Parquet
 INFO - [PyDeequ] Starting data quality validation - Gold Layer (gold_summary_by_year_type)
 INFO - [PASS] PyDeequ Data Quality Validation PASSED - Gold Layer (gold_summary_by_year_type) (Rows: 15, Columns: 9, Duplicates: 0, Errors: 0)
@@ -370,56 +370,56 @@ INFO - [OK] Age-value relationship analysis complete
 INFO - Analyzing neighborhood evolution
 INFO - [OK] Neighborhood evolution analysis complete
 INFO - [OK] All analyses complete
-INFO - Saving analyses CSV to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv
-INFO - Saving analyses Parquet to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\volume_analysis\total_properties.csv (1 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\volume_analysis\total_properties.parquet (1 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\volume_analysis\volume_by_year.csv (5 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_year.parquet (5 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\volume_analysis\volume_by_type.csv (3 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_type.parquet (3 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\volume_analysis\volume_by_neighborhood.csv (96 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_neighborhood.parquet (96 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\volume_analysis\volume_by_year_type.csv (15 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_year_type.parquet (15 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\volume_analysis\volume_by_year_neighborhood.csv (425 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_year_neighborhood.parquet (425 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_type.csv (3 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_type.parquet (3 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_neighborhood_top20.csv (20 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_neighborhood_top20.parquet (20 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_year.csv (5 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_year.parquet (5 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_construction.csv (16 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_construction.parquet (16 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\distribution_analysis\top_neighborhoods_by_year.csv (50 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\distribution_analysis\top_neighborhoods_by_year.parquet (50 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\tax_value_analysis\tax_stats_by_year.csv (5 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\tax_value_analysis\tax_stats_by_year.parquet (5 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\tax_value_analysis\avg_tax_by_neighborhood_top20.csv (20 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\tax_value_analysis\avg_tax_by_neighborhood_top20.parquet (20 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\tax_value_analysis\property_value_by_year.csv (5 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\tax_value_analysis\property_value_by_year.parquet (5 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\age_analysis\age_distribution_by_range.csv (7 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\age_analysis\age_distribution_by_range.parquet (7 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\age_analysis\age_statistics.csv (1 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\age_analysis\age_statistics.parquet (1 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\age_value_analysis\age_value_relationship.csv (6 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\age_value_analysis\age_value_relationship.parquet (6 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\evolution_analysis\neighborhood_evolution.csv (93 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\evolution_analysis\neighborhood_evolution.parquet (93 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\evolution_analysis\top_growth_quantity.csv (20 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\evolution_analysis\top_growth_quantity.parquet (20 rows)
-INFO -   Saved CSV: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv\evolution_analysis\top_growth_value.csv (20 rows)
-INFO -   Saved Parquet: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\parquet\analyses\evolution_analysis\top_growth_value.parquet (20 rows)
+INFO - Saving analyses CSV to C:\work\neuro_tech\data\gold\csv
+INFO - Saving analyses Parquet to C:\work\neuro_tech\data\gold\parquet\analyses
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\volume_analysis\total_properties.csv (1 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\volume_analysis\total_properties.parquet (1 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\volume_analysis\volume_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\volume_analysis\volume_by_type.csv (3 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_type.parquet (3 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\volume_analysis\volume_by_neighborhood.csv (96 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_neighborhood.parquet (96 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\volume_analysis\volume_by_year_type.csv (15 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_year_type.parquet (15 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\volume_analysis\volume_by_year_neighborhood.csv (425 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\volume_analysis\volume_by_year_neighborhood.parquet (425 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_type.csv (3 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_type.parquet (3 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_neighborhood_top20.csv (20 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_neighborhood_top20.parquet (20 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\distribution_analysis\distribution_by_construction.csv (16 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\distribution_analysis\distribution_by_construction.parquet (16 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\distribution_analysis\top_neighborhoods_by_year.csv (50 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\distribution_analysis\top_neighborhoods_by_year.parquet (50 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\tax_value_analysis\tax_stats_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\tax_value_analysis\tax_stats_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\tax_value_analysis\avg_tax_by_neighborhood_top20.csv (20 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\tax_value_analysis\avg_tax_by_neighborhood_top20.parquet (20 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\tax_value_analysis\property_value_by_year.csv (5 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\tax_value_analysis\property_value_by_year.parquet (5 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\age_analysis\age_distribution_by_range.csv (7 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\age_analysis\age_distribution_by_range.parquet (7 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\age_analysis\age_statistics.csv (1 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\age_analysis\age_statistics.parquet (1 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\age_value_analysis\age_value_relationship.csv (6 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\age_value_analysis\age_value_relationship.parquet (6 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\evolution_analysis\neighborhood_evolution.csv (93 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\evolution_analysis\neighborhood_evolution.parquet (93 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\evolution_analysis\top_growth_quantity.csv (20 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\evolution_analysis\top_growth_quantity.parquet (20 rows)
+INFO -   Saved CSV: C:\work\neuro_tech\data\gold\csv\evolution_analysis\top_growth_value.csv (20 rows)
+INFO -   Saved Parquet: C:\work\neuro_tech\data\gold\parquet\analyses\evolution_analysis\top_growth_value.parquet (20 rows)
 INFO - [OK] All analyses saved
-INFO - [OK] Analysis complete - saved to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\csv
+INFO - [OK] Analysis complete - saved to C:\work\neuro_tech\data\gold\csv
 INFO -
 [VALIDATION] Generating Validation Reports
 INFO - --------------------------------------------------------------------------------
-INFO - Validation report saved to C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\medallion_validation_report.json
+INFO - Validation report saved to C:\work\neuro_tech\data\catalog\medallion_validation_report.json
 INFO - [OK] Medallion validation summary: 9/9 passed
-INFO - [OK] Validation report saved to: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\catalog\medallion_validation_report.json
+INFO - [OK] Validation report saved to: C:\work\neuro_tech\data\catalog\medallion_validation_report.json
 INFO -
 ================================================================================
 INFO - Pipeline Complete!
@@ -429,59 +429,59 @@ INFO - Consolidated dataset: 1,637,779 rows, 38 columns
 INFO - 
 Generating visualizations from analysis results...
 INFO - Generating all visualizations...
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\volume_by_year.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\volume_by_year.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\volume_by_type.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\volume_by_type.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\top_neighborhoods.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\top_neighborhoods.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\volume_by_year_type.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\volume_by_year_type.png
 INFO - Loaded gold data: 1,637,779 rows, 38 columns
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\tax_trends.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\tax_trends.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\top_tax_neighborhoods.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\distribution_by_construction.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\distribution_by_construction.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\temporal_distribution.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\temporal_distribution.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\age_distribution.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\age_distribution.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\age_value_relationship.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\age_value_relationship.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_quantity.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_quantity.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_value.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_value.png
 INFO - [OK] Generated 12 plots
 INFO - Generating all visualizations...
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_type.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_neighborhoods.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\volume_by_year_type.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\volume_by_year.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\volume_by_year.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\volume_by_type.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\volume_by_type.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\top_neighborhoods.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\top_neighborhoods.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\volume_by_year_type.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\volume_by_year_type.png
 INFO - Loaded gold data: 1,637,779 rows, 38 columns
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\tax_trends.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\distribution_by_construction.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\temporal_distribution.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_distribution.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\age_value_relationship.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_quantity.png
-INFO - Saved plot HTML: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.html
-INFO - Saved plot PNG: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\neighborhood_growth_value.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\tax_trends.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\tax_trends.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\top_tax_neighborhoods.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\top_tax_neighborhoods.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\distribution_by_construction.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\distribution_by_construction.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\temporal_distribution.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\temporal_distribution.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\age_distribution.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\age_distribution.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\age_value_relationship.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\age_value_relationship.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_quantity.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_quantity.png
+INFO - Saved plot HTML: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_value.html
+INFO - Saved plot PNG: C:\work\neuro_tech\data\gold\plots\neighborhood_growth_value.png
 INFO - [OK] Generated 12 plots
-INFO - [OK] HTML report created: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\visualizations_report.html
+INFO - [OK] HTML report created: C:\work\neuro_tech\data\gold\plots\visualizations_report.html
 INFO - [OK] Generated 13 plots
-INFO - [OK] HTML report: C:\Users\Rodrigo\Documents\Entrevistas\neuro_tech\data\gold\plots\visualizations_report.html
+INFO - [OK] HTML report: C:\work\neuro_tech\data\gold\plots\visualizations_report.html
